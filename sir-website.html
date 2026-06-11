@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIR — Swimming Impact Rank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0A1628;
+  color: #F0F4FF;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── Tokens ───────────────────────────────────────────────── */
+:root {
+  --navy:    #0A1628;
+  --steel:   #1E3556;
+  --mid:     #2D4A6B;
+  --slate:   #8FA3BF;
+  --white:   #F0F4FF;
+  --cyan:    #00C9FF;
+  --cyan-dim:#007FA3;
+  --amber:   #F5A623;
+  --green:   #22D67A;
+  --red:     #FF5C5C;
+  --radius:  8px;
+  --radius-lg: 14px;
+}
+
+/* ─── Nav ──────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 60px;
+  background: rgba(10,22,40,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,201,255,0.12);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 18px; color: var(--white); text-decoration: none;
+}
+.nav-logo-badge {
+  background: var(--cyan); color: var(--navy);
+  font-size: 11px; font-weight: 700; padding: 2px 7px;
+  border-radius: 4px; letter-spacing: 0.06em;
+}
+.nav-links { display: flex; gap: 1.5rem; list-style: none; }
+.nav-links a {
+  color: var(--slate); font-size: 14px; text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--cyan); color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: 13px; padding: 7px 18px; border-radius: var(--radius);
+  text-decoration: none; transition: opacity 0.2s;
+}
+.nav-cta:hover { opacity: 0.85; }
+
+/* ─── Hero ─────────────────────────────────────────────────── */
+.hero {
+  position: relative; overflow: hidden;
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  padding: 100px 2rem 4rem;
+}
+.hero-lanes {
+  position: absolute; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+.hero-lanes svg { width: 100%; height: 100%; }
+.hero-gradient {
+  position: absolute; inset: 0; z-index: 1;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%,
+    rgba(0,201,255,0.06) 0%, transparent 70%),
+    linear-gradient(to bottom, transparent 60%, var(--navy) 100%);
+}
+.hero-content { position: relative; z-index: 2; max-width: 780px; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,201,255,0.1); border: 1px solid rgba(0,201,255,0.25);
+  color: var(--cyan); font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+.hero-eyebrow::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cyan); animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+.hero-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(42px, 7vw, 82px);
+  font-weight: 700; line-height: 1.0;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.25rem;
+}
+.hero-title em {
+  font-style: normal; color: var(--cyan);
+  display: block;
+}
+.hero-sub {
+  font-size: clamp(16px, 2vw, 19px);
+  color: var(--slate); max-width: 560px; margin: 0 auto 2.5rem;
+  line-height: 1.6;
+}
+.hero-sub strong { color: var(--white); font-weight: 500; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--cyan); color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 15px; padding: 13px 28px; border-radius: var(--radius);
+  text-decoration: none; border: none; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 0 0 rgba(0,201,255,0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 24px rgba(0,201,255,0.3);
+}
+.btn-secondary {
+  background: transparent; color: var(--white);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: 15px; padding: 13px 28px; border-radius: var(--radius);
+  text-decoration: none; border: 1px solid rgba(240,244,255,0.2);
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.btn-secondary:hover { border-color: rgba(240,244,255,0.5); background: rgba(240,244,255,0.05); }
+
+/* ─── Hero context table ───────────────────────────────────── */
+.hero-context {
+  position: relative; z-index: 2;
+  margin-top: 4rem; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+}
+.ctx-card {
+  background: rgba(30,53,86,0.6);
+  border: 1px solid rgba(0,201,255,0.15);
+  border-radius: var(--radius-lg); padding: 1rem 1.25rem; min-width: 120px;
+  text-align: center; backdrop-filter: blur(8px);
+}
+.ctx-conf {
+  font-size: 11px; font-weight: 600; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px;
+}
+.ctx-rank {
+  font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700;
+  line-height: 1; margin-bottom: 4px;
+}
+.ctx-time {
+  font-size: 12px; color: var(--slate);
+}
+.rank-dominant { color: var(--cyan); }
+.rank-elite    { color: var(--green); }
+.rank-average  { color: var(--amber); }
+.rank-below    { color: var(--slate); }
+
+/* ─── Section wrapper ──────────────────────────────────────── */
+section { padding: 5rem 2rem; }
+.container { max-width: 1100px; margin: 0 auto; }
+.section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--cyan);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem;
+}
+.section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(26px, 4vw, 40px); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+.section-sub {
+  color: var(--slate); font-size: 16px; max-width: 560px; line-height: 1.65;
+}
+
+/* ─── Philosophy strip ─────────────────────────────────────── */
+.philosophy {
+  background: var(--steel);
+  border-top: 1px solid rgba(0,201,255,0.1);
+  border-bottom: 1px solid rgba(0,201,255,0.1);
+}
+.philosophy-inner {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 3rem; align-items: center;
+}
+.philosophy-quote {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(20px, 3vw, 30px); font-weight: 600;
+  line-height: 1.3; letter-spacing: -0.015em;
+}
+.philosophy-quote em {
+  font-style: normal; color: var(--cyan);
+  border-bottom: 2px solid var(--cyan);
+}
+.compare-table { width: 100%; border-collapse: collapse; }
+.compare-table th {
+  text-align: left; font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 8px 12px; border-bottom: 1px solid rgba(240,244,255,0.1);
+}
+.compare-table td {
+  padding: 10px 12px; font-size: 14px;
+  border-bottom: 1px solid rgba(240,244,255,0.06);
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 4px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.tag-cyan   { background: rgba(0,201,255,0.15); color: var(--cyan); }
+.tag-amber  { background: rgba(245,166,35,0.15); color: var(--amber); }
+.tag-green  { background: rgba(34,214,122,0.15); color: var(--green); }
+.tag-slate  { background: rgba(143,163,191,0.15); color: var(--slate); }
+
+/* ─── Mode selector ────────────────────────────────────────── */
+.modes-section { background: var(--navy); }
+.mode-tabs {
+  display: flex; gap: 4px;
+  background: rgba(30,53,86,0.5);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 4px;
+  margin-bottom: 2rem; width: fit-content;
+}
+.mode-tab {
+  padding: 10px 22px; border-radius: 10px; border: none;
+  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; font-weight: 600;
+  background: transparent; color: var(--slate);
+  transition: all 0.2s; white-space: nowrap;
+}
+.mode-tab.active {
+  background: var(--cyan); color: var(--navy);
+}
+.mode-tab:not(.active):hover { color: var(--white); }
+.mode-panel { display: none; }
+.mode-panel.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Tool layout ──────────────────────────────────────────── */
+.tool-layout {
+  display: grid; grid-template-columns: 380px 1fr;
+  gap: 1.5rem; align-items: start;
+}
+.tool-form {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+}
+.tool-form h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+.tool-form .form-desc { font-size: 13px; color: var(--slate); margin-bottom: 1.25rem; }
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block; font-size: 12px; font-weight: 600; color: var(--slate);
+  font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.field input, .field select {
+  width: 100%; background: var(--mid); border: 1px solid rgba(240,244,255,0.1);
+  border-radius: var(--radius); color: var(--white); font-size: 14px;
+  padding: 9px 12px; font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0,201,255,0.1);
+}
+.field input::placeholder { color: var(--slate); }
+.field select option { background: var(--steel); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.calc-btn {
+  width: 100%; margin-top: 0.5rem;
+  background: var(--cyan); color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 14px; padding: 12px; border-radius: var(--radius);
+  border: none; cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+}
+.calc-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.calc-btn:active { transform: translateY(0); }
+
+/* ─── Results panel ────────────────────────────────────────── */
+.results-panel {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem; min-height: 320px;
+}
+.results-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 260px; gap: 12px;
+  color: var(--slate); font-size: 14px; text-align: center;
+}
+.results-empty .empty-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(143,163,191,0.1);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+
+/* ─── Recruit results ──────────────────────────────────────── */
+.conf-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-bottom: 1.25rem;
+}
+.conf-card {
+  background: rgba(10,22,40,0.6); border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius-lg); padding: 1rem 1rem 0.85rem;
+  transition: border-color 0.2s;
+}
+.conf-card:hover { border-color: rgba(0,201,255,0.3); }
+.conf-card.top-conf { border-color: rgba(0,201,255,0.4); background: rgba(0,201,255,0.05); }
+.conf-card-name {
+  font-size: 10px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px;
+}
+.conf-card-rank {
+  font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
+  line-height: 1; margin-bottom: 2px;
+}
+.conf-card-of { font-size: 11px; color: var(--slate); margin-bottom: 6px; }
+.conf-card-tier {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em;
+}
+.conf-card-sir { font-size: 10px; color: var(--slate); margin-top: 4px; }
+.tier-dominant { background: rgba(0,201,255,0.15); color: var(--cyan); }
+.tier-elite    { background: rgba(34,214,122,0.15); color: var(--green); }
+.tier-competitive { background: rgba(245,166,35,0.15); color: var(--amber); }
+.tier-average  { background: rgba(143,163,191,0.15); color: var(--slate); }
+.tier-below    { background: rgba(255,92,92,0.1); color: var(--red); }
+
+.breakdown-box {
+  background: rgba(10,22,40,0.5); border: 1px solid rgba(240,244,255,0.06);
+  border-radius: var(--radius); padding: 1rem 1.1rem;
+}
+.breakdown-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid rgba(240,244,255,0.06);
+  font-size: 13px;
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-label { color: var(--slate); }
+.breakdown-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+.bar-mini {
+  height: 3px; background: rgba(240,244,255,0.1); border-radius: 2px;
+  margin-top: 3px; overflow: hidden;
+}
+.bar-mini-fill { height: 100%; border-radius: 2px; background: var(--cyan); transition: width 0.5s ease; }
+
+/* ─── Transfer results ─────────────────────────────────────── */
+.team-card {
+  background: rgba(10,22,40,0.6); border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.team-card:hover { border-color: rgba(0,201,255,0.25); }
+.team-card.best-fit { border-color: rgba(0,201,255,0.4); }
+.team-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.85rem;
+}
+.team-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600;
+}
+.team-conf { font-size: 12px; color: var(--slate); }
+.team-impact-badge {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border-radius: var(--radius); white-space: nowrap;
+}
+.event-bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-ev { font-size: 12px; color: var(--slate); width: 72px; flex-shrink: 0; }
+.bar-track {
+  flex: 1; height: 6px; background: rgba(240,244,255,0.08);
+  border-radius: 3px; overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s 0.1s ease; }
+.bar-rank-text {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600;
+  width: 56px; text-align: right;
+}
+
+/* ─── Coach table ──────────────────────────────────────────── */
+.coach-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.coach-table thead th {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase;
+  text-align: left; padding: 8px 10px;
+  border-bottom: 1px solid rgba(240,244,255,0.1);
+}
+.coach-table tbody td {
+  padding: 10px 10px; border-bottom: 1px solid rgba(240,244,255,0.05);
+  color: var(--white);
+}
+.coach-table tbody tr:last-child td { border-bottom: none; }
+.coach-table tbody tr:hover td { background: rgba(0,201,255,0.04); }
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 22px; border-radius: 5px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+}
+.badge-gold   { background: rgba(245,166,35,0.2); color: var(--amber); }
+.badge-silver { background: rgba(143,163,191,0.15); color: var(--slate); }
+.badge-other  { background: rgba(240,244,255,0.07); color: var(--slate); }
+
+/* ─── How it works ─────────────────────────────────────────── */
+.how-section { background: var(--steel); }
+.how-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem; margin-top: 2.5rem;
+}
+.how-card {
+  background: rgba(10,22,40,0.5); border: 1px solid rgba(0,201,255,0.1);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+}
+.how-number {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  color: var(--cyan); letter-spacing: 0.1em; margin-bottom: 0.75rem;
+}
+.how-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.how-desc { font-size: 14px; color: var(--slate); line-height: 1.6; }
+
+/* ─── CTA ──────────────────────────────────────────────────── */
+.cta-section { text-align: center; padding: 6rem 2rem; }
+.cta-section .section-sub { margin: 0 auto 2rem; }
+
+/* ─── Footer ───────────────────────────────────────────────── */
+footer {
+  background: #060F1C;
+  border-top: 1px solid rgba(240,244,255,0.06);
+  padding: 2rem; text-align: center;
+}
+.footer-inner {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: 1100px; margin: 0 auto; flex-wrap: wrap; gap: 1rem;
+}
+.footer-logo {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px;
+  color: var(--white);
+}
+.footer-note { font-size: 13px; color: var(--slate); }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { font-size: 13px; color: var(--slate); text-decoration: none; }
+.footer-links a:hover { color: var(--white); }
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .philosophy-inner { grid-template-columns: 1fr; }
+  .tool-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  nav { padding: 0 1rem; }
+  .nav-links { display: none; }
+  .hero { padding: 80px 1.25rem 3rem; }
+  section { padding: 3.5rem 1.25rem; }
+  .mode-tabs { flex-wrap: wrap; width: 100%; }
+  .mode-tab { flex: 1; text-align: center; padding: 9px 12px; font-size: 13px; }
+  .ctx-card { padding: 0.75rem; min-width: 90px; }
+  .ctx-rank { font-size: 22px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+}
+
+/* ─── Utility ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="nav-logo-badge">SIR</span>
+    Swimming Impact Rank
+  </a>
+  <ul class="nav-links">
+    <li><a href="#tool">Rankings</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#philosophy">Philosophy</a></li>
+  </ul>
+  <a class="nav-cta" href="#tool">Try it free</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-lanes">
+    <svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <!-- Lane lines -->
+      <defs>
+        <pattern id="lane" x="0" y="0" width="175" height="1" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="900" stroke="rgba(0,201,255,0.07)" stroke-width="1" stroke-dasharray="18 14"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#lane)"/>
+      <!-- Horizontal lane ropes suggestion -->
+      <line x1="0" y1="180" x2="1400" y2="180" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="360" x2="1400" y2="360" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="540" x2="1400" y2="540" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="720" x2="1400" y2="720" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <!-- T-mark at bottom -->
+      <rect x="0" y="820" width="1400" height="3" fill="rgba(0,201,255,0.06)"/>
+    </svg>
+  </div>
+  <div class="hero-gradient"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Context-aware ranking · 2025 season</div>
+    <h1 class="hero-title">
+      How valuable are you<br>
+      <em>where it matters?</em>
+    </h1>
+    <p class="hero-sub">
+      A 43.5 in the 100 free means <strong>average in the SEC</strong>, 
+      <strong>good in the ACC</strong>, <strong>elite in the Patriot League</strong>. 
+      SIR shows your real impact — across every conference, every environment.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#tool">Find your rank</a>
+      <a class="btn-secondary" href="#philosophy">How it's different</a>
+    </div>
+  </div>
+
+  <div class="hero-context">
+    <div class="ctx-card">
+      <div class="ctx-conf">SEC</div>
+      <div class="ctx-rank rank-average">#87</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">ACC</div>
+      <div class="ctx-rank rank-elite">#42</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">Big 12</div>
+      <div class="ctx-rank rank-elite">#19</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">Patriot</div>
+      <div class="ctx-rank rank-dominant">#3</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">D3</div>
+      <div class="ctx-rank rank-dominant">#1</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<section class="philosophy" id="philosophy">
+  <div class="container">
+    <div class="philosophy-inner">
+      <div>
+        <div class="section-label">Why SIR is different</div>
+        <p class="philosophy-quote">
+          Other systems ask <em>"how fast?"</em><br>
+          We ask <em>"how impactful?"</em>
+        </p>
+        <p style="color:var(--slate);font-size:15px;margin-top:1rem;line-height:1.65;">
+          FINA points and SwimCloud rankings tell you how a time compares globally. That's useful for elite performance tracking. But for recruits, transfers, coaches, and teams — the real question is contextual impact in a specific competitive environment.
+        </p>
+      </div>
+      <div>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Question answered</th>
+              <th>Best for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">FINA Points</td>
+              <td>How fast globally?</td>
+              <td><span class="tag tag-slate">Elite</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">SwimCloud PI</td>
+              <td>How fast in D1?</td>
+              <td><span class="tag tag-slate">D1 athletes</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--cyan)">SIR</td>
+              <td>How impactful <em>here</em>?</td>
+              <td><span class="tag tag-cyan">Everyone</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RANKING TOOL -->
+<section class="modes-section" id="tool">
+  <div class="container">
+    <div class="section-label">Interactive tool</div>
+    <h2 class="section-title">Find your impact rank</h2>
+    <p class="section-sub" style="margin-bottom:2rem">
+      Enter your times and pick a mode. SIR calculates your contextual rank across conferences in seconds.
+    </p>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('recruit',this)">Recruit mode</button>
+      <button class="mode-tab" onclick="switchMode('transfer',this)">Transfer portal</button>
+      <button class="mode-tab" onclick="switchMode('coach',this)">Coach search</button>
+    </div>
+
+    <!-- RECRUIT MODE -->
+    <div id="mode-recruit" class="mode-panel active">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Recruit mode</h3>
+          <p class="form-desc">Enter your best times to see how you rank across conferences.</p>
+          <div class="field-row">
+            <div class="field">
+              <label>50 free (sec)</label>
+              <input type="number" id="r-50" placeholder="21.5" step="0.01" min="16" max="35">
+            </div>
+            <div class="field">
+              <label>100 free (sec)</label>
+              <input type="number" id="r-100" placeholder="47.2" step="0.01" min="37" max="65">
+            </div>
+          </div>
+          <div class="field">
+            <label>200 free (sec)</label>
+            <input type="number" id="r-200" placeholder="105.0 (1:45.0)" step="0.1" min="85" max="140">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="r-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <button class="calc-btn" onclick="runRecruit()">Calculate impact rank →</button>
+        </div>
+        <div class="results-panel" id="recruit-results">
+          <div class="results-empty">
+            <div class="empty-icon">🏊</div>
+            <div>Enter your times to see your rank across all conferences</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSFER MODE -->
+    <div id="mode-transfer" class="mode-panel">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Transfer portal</h3>
+          <p class="form-desc">See where you'd rank on target team rosters immediately.</p>
+          <div class="field-row">
+            <div class="field">
+              <label>50 free (sec)</label>
+              <input type="number" id="t-50" placeholder="21.5" step="0.01">
+            </div>
+            <div class="field">
+              <label>100 free (sec)</label>
+              <input type="number" id="t-100" placeholder="47.2" step="0.01">
+            </div>
+          </div>
+          <div class="field">
+            <label>200 free (sec)</label>
+            <input type="number" id="t-200" placeholder="105.0 (1:45.0)" step="0.1">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="t-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <button class="calc-btn" onclick="runTransfer()">Show roster fit →</button>
+        </div>
+        <div class="results-panel" id="transfer-results">
+          <div class="results-empty">
+            <div class="empty-icon">📋</div>
+            <div>Enter your times to see your roster position at target programs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COACH MODE -->
+    <div id="mode-coach" class="mode-panel">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Coach search</h3>
+          <p class="form-desc">Search for swimmers by event, conference, and gender.</p>
+          <div class="field">
+            <label>Event</label>
+            <select id="c-event">
+              <option value="100free">100 free</option>
+              <option value="50free">50 free</option>
+              <option value="200free">200 free</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Conference</label>
+            <select id="c-conf">
+              <option value="all">All D1</option>
+              <option value="SEC">SEC</option>
+              <option value="ACC">ACC</option>
+              <option value="Big 10">Big 10</option>
+              <option value="Pac-12">Pac-12</option>
+              <option value="Patriot League">Patriot League</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Gender</label>
+              <select id="c-gender">
+                <option value="M">Men</option>
+                <option value="F">Women</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Show top</label>
+              <select id="c-top">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+          <button class="calc-btn" onclick="runCoach()">Search →</button>
+        </div>
+        <div class="results-panel" id="coach-results">
+          <div class="results-empty">
+            <div class="empty-icon">🔍</div>
+            <div>Set your filters and search to find swimmers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-label">Methodology</div>
+    <h2 class="section-title">How SIR is calculated</h2>
+    <p class="section-sub">
+      A single transparent formula built around how swimmers actually contribute at conference championships.
+    </p>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-number">STEP 01</div>
+        <div class="how-title">Percentile mapping</div>
+        <p class="how-desc">Each time is mapped against the conference's percentile distribution for that event and season. Where you finish in the distribution — not the raw time — is what matters.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 02</div>
+        <div class="how-title">Championship weighting</div>
+        <p class="how-desc">Individual events contribute 28.33% each. Relay contribution adds the remaining 15%, split equally. This mirrors the scoring structure of actual conference championships.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 03</div>
+        <div class="how-title">SIR score</div>
+        <p class="how-desc">Scores run from 1.000 (best) upward — like golf. Lower is better. A 1.000 is the top of the conference. A 3.000 is average. A 5.000 is at the bottom of the field.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 04</div>
+        <div class="how-title">Context shift</div>
+        <p class="how-desc">The same SIR process runs independently for each conference using that conference's benchmarks. A swimmer ranked #42 in the ACC might rank #3 in the Patriot League — that's the point.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <div class="section-label">Get started</div>
+    <h2 class="section-title">Know where you stand.</h2>
+    <p class="section-sub">
+      Whether you're a recruit evaluating fit, an athlete considering a transfer, or a coach searching the portal — SIR gives you the contextual picture that raw times can't.
+    </p>
+    <a class="btn-primary" href="#tool">Find your impact rank →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">SIR · Swimming Impact Rank</div>
+    <div class="footer-note">Rankings based on 2025 conference championship distributions · D1 men & women</div>
+    <div class="footer-links">
+      <a href="#tool">Tool</a>
+      <a href="#how">Method</a>
+      <a href="#philosophy">About</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────
+const CONF_DATA = {
+  M: {
+    "50free": {
+      "SEC":          { p10:19.8,p25:20.3,p50:20.9,p75:21.5,p90:22.1,size:120 },
+      "ACC":          { p10:20.1,p25:20.7,p50:21.3,p75:21.9,p90:22.6,size:110 },
+      "Big 10":       { p10:20.2,p25:20.8,p50:21.4,p75:22.1,p90:22.8,size:115 },
+      "Pac-12":       { p10:20.0,p25:20.6,p50:21.2,p75:21.8,p90:22.4,size:95  },
+      "Big 12":       { p10:20.4,p25:21.0,p50:21.7,p75:22.4,p90:23.0,size:80  },
+      "Patriot League":{ p10:21.0,p25:21.7,p50:22.5,p75:23.3,p90:24.0,size:60 },
+      "MPSF":         { p10:20.3,p25:20.9,p50:21.5,p75:22.2,p90:22.9,size:70  },
+      "D3 Elite":     { p10:21.5,p25:22.3,p50:23.1,p75:24.0,p90:24.8,size:200 },
+    },
+    "100free": {
+      "SEC":          { p10:43.0,p25:43.8,p50:44.9,p75:46.1,p90:47.2,size:120 },
+      "ACC":          { p10:43.5,p25:44.4,p50:45.5,p75:46.7,p90:47.9,size:110 },
+      "Big 10":       { p10:43.7,p25:44.6,p50:45.7,p75:47.0,p90:48.2,size:115 },
+      "Pac-12":       { p10:43.3,p25:44.2,p50:45.2,p75:46.4,p90:47.5,size:95  },
+      "Big 12":       { p10:44.0,p25:45.0,p50:46.1,p75:47.4,p90:48.6,size:80  },
+      "Patriot League":{ p10:45.0,p25:46.2,p50:47.5,p75:48.9,p90:50.2,size:60 },
+      "MPSF":         { p10:43.8,p25:44.7,p50:45.8,p75:47.1,p90:48.3,size:70  },
+      "D3 Elite":     { p10:45.8,p25:47.2,p50:48.7,p75:50.3,p90:51.8,size:200 },
+    },
+    "200free": {
+      "SEC":          { p10:94.5,p25:96.0,p50:98.0,p75:100.5,p90:103.0,size:120 },
+      "ACC":          { p10:95.2,p25:96.8,p50:98.9,p75:101.4,p90:103.9,size:110 },
+      "Big 10":       { p10:95.5,p25:97.2,p50:99.3,p75:102.0,p90:104.5,size:115 },
+      "Pac-12":       { p10:94.8,p25:96.4,p50:98.4,p75:100.9,p90:103.4,size:95  },
+      "Big 12":       { p10:96.0,p25:97.8,p50:100.0,p75:102.7,p90:105.2,size:80 },
+      "Patriot League":{ p10:98.5,p25:100.5,p50:103.0,p75:106.0,p90:108.5,size:60 },
+      "MPSF":         { p10:95.8,p25:97.5,p50:99.6,p75:102.3,p90:104.8,size:70  },
+      "D3 Elite":     { p10:100.0,p25:102.5,p50:105.5,p75:108.5,p90:111.5,size:200 },
+    }
+  },
+  F: {
+    "50free": {
+      "SEC":          { p10:22.3,p25:22.9,p50:23.6,p75:24.3,p90:25.0,size:120 },
+      "ACC":          { p10:22.6,p25:23.2,p50:24.0,p75:24.8,p90:25.6,size:110 },
+      "Big 10":       { p10:22.8,p25:23.4,p50:24.2,p75:25.0,p90:25.8,size:115 },
+      "Pac-12":       { p10:22.5,p25:23.1,p50:23.8,p75:24.6,p90:25.4,size:95  },
+      "Big 12":       { p10:22.9,p25:23.6,p50:24.4,p75:25.2,p90:26.0,size:80  },
+      "Patriot League":{ p10:23.5,p25:24.3,p50:25.2,p75:26.1,p90:27.0,size:60 },
+      "MPSF":         { p10:22.7,p25:23.3,p50:24.1,p75:24.9,p90:25.7,size:70  },
+      "D3 Elite":     { p10:24.0,p25:24.9,p50:25.9,p75:26.9,p90:27.8,size:200 },
+    },
+    "100free": {
+      "SEC":          { p10:48.8,p25:49.8,p50:51.1,p75:52.5,p90:53.9,size:120 },
+      "ACC":          { p10:49.3,p25:50.4,p50:51.8,p75:53.3,p90:54.7,size:110 },
+      "Big 10":       { p10:49.5,p25:50.6,p50:52.0,p75:53.5,p90:55.0,size:115 },
+      "Pac-12":       { p10:49.0,p25:50.1,p50:51.4,p75:52.9,p90:54.3,size:95  },
+      "Big 12":       { p10:49.7,p25:50.9,p50:52.4,p75:54.0,p90:55.5,size:80  },
+      "Patriot League":{ p10:51.0,p25:52.4,p50:54.0,p75:55.7,p90:57.3,size:60 },
+      "MPSF":         { p10:49.4,p25:50.5,p50:51.9,p75:53.4,p90:54.9,size:70  },
+      "D3 Elite":     { p10:52.0,p25:53.6,p50:55.3,p75:57.1,p90:58.8,size:200 },
+    },
+    "200free": {
+      "SEC":          { p10:107,p25:109,p50:112,p75:115,p90:118,size:120 },
+      "ACC":          { p10:108,p25:110,p50:113,p75:116.5,p90:120,size:110 },
+      "Big 10":       { p10:108.5,p25:111,p50:114,p75:117.5,p90:121,size:115 },
+      "Pac-12":       { p10:107.5,p25:109.5,p50:112.5,p75:116,p90:119.5,size:95 },
+      "Big 12":       { p10:109,p25:111.5,p50:114.5,p75:118,p90:121.5,size:80 },
+      "Patriot League":{ p10:112,p25:115,p50:118.5,p75:122,p90:126,size:60 },
+      "MPSF":         { p10:108,p25:110.5,p50:113.5,p75:117,p90:120.5,size:70 },
+      "D3 Elite":     { p10:114,p25:117.5,p50:121.5,p75:125.5,p90:130,size:200 },
+    }
+  }
+};
+
+const ROSTERS = {
+  M: {
+    "Virginia Tech (ACC)": { conf:"ACC", "100free":[43.2,43.7,44.1,44.5,44.9,45.3,45.8,46.2,46.7,47.1], "50free":[19.9,20.2,20.5,20.8,21.1,21.4,21.7,22.0,22.3,22.6], "200free":[95.0,95.8,96.6,97.5,98.4,99.4,100.4,101.5,102.6,103.8] },
+    "NC State (ACC)":      { conf:"ACC", "100free":[42.8,43.3,43.8,44.3,44.8,45.4,46.0,46.6,47.2,47.9], "50free":[19.6,19.9,20.2,20.5,20.8,21.1,21.4,21.8,22.2,22.6], "200free":[94.2,95.0,95.8,96.7,97.6,98.6,99.7,100.8,102.0,103.3] },
+    "Navy (Patriot)":      { conf:"Patriot League", "100free":[45.5,46.1,46.7,47.3,47.9,48.5,49.1,49.8,50.5,51.2], "50free":[21.2,21.6,22.0,22.4,22.8,23.2,23.7,24.1,24.6,25.1], "200free":[100.0,101.2,102.4,103.7,105.0,106.4,107.8,109.3,110.8,112.4] },
+    "MIT (D3)":            { conf:"D3 Elite", "100free":[47.0,47.8,48.6,49.4,50.3,51.1,52.0,52.9,53.9,54.9], "50free":[22.0,22.5,23.0,23.5,24.0,24.6,25.2,25.8,26.4,27.0], "200free":[103.5,105.0,106.5,108.0,109.6,111.2,112.9,114.6,116.4,118.2] }
+  },
+  F: {
+    "Virginia Tech (ACC)": { conf:"ACC", "100free":[49.5,50.1,50.7,51.4,52.1,52.8,53.5,54.3,55.1,55.9], "50free":[23.0,23.4,23.8,24.2,24.6,25.1,25.6,26.1,26.6,27.1], "200free":[109,110.5,112,113.5,115,116.6,118.2,119.9,121.6,123.4] },
+    "NC State (ACC)":      { conf:"ACC", "100free":[49.0,49.6,50.2,50.9,51.6,52.3,53.0,53.8,54.6,55.4], "50free":[22.7,23.1,23.5,23.9,24.3,24.7,25.2,25.7,26.2,26.7], "200free":[108,109.4,110.9,112.4,113.9,115.5,117.1,118.8,120.5,122.3] },
+    "Navy (Patriot)":      { conf:"Patriot League", "100free":[51.5,52.3,53.1,53.9,54.7,55.6,56.5,57.4,58.4,59.4], "50free":[24.0,24.5,25.0,25.5,26.1,26.7,27.3,27.9,28.6,29.3], "200free":[113,114.8,116.6,118.4,120.3,122.2,124.2,126.2,128.3,130.4] },
+    "MIT (D3)":            { conf:"D3 Elite", "100free":[53.0,54.0,55.0,56.0,57.0,58.1,59.2,60.3,61.5,62.7], "50free":[24.8,25.4,26.0,26.6,27.3,28.0,28.7,29.5,30.3,31.1], "200free":[117,119.0,121.0,123.1,125.2,127.4,129.6,131.9,134.3,136.7] }
+  }
+};
+
+const SAMPLE_SWIMMERS = {
+  M: [
+    { name:"Alex Fountain",  team:"Tennessee",  conf:"SEC",          "100free":43.1,"50free":19.7,"200free":94.8 },
+    { name:"Marcus Webb",    team:"Virginia Tech",conf:"ACC",        "100free":43.8,"50free":20.1,"200free":95.9 },
+    { name:"Jordan Tse",     team:"NC State",    conf:"ACC",          "100free":44.2,"50free":20.4,"200free":96.8 },
+    { name:"Dylan Park",     team:"Ohio State",  conf:"Big 10",       "100free":44.7,"50free":20.7,"200free":97.6 },
+    { name:"Cam Reyes",      team:"Navy",        conf:"Patriot League","100free":45.9,"50free":21.4,"200free":100.5 },
+    { name:"Nick Ballard",   team:"Bucknell",    conf:"Patriot League","100free":47.2,"50free":22.0,"200free":103.8 },
+    { name:"Ryan Cho",       team:"MIT",         conf:"D3 Elite",     "100free":48.1,"50free":22.5,"200free":105.0 },
+    { name:"Lucas Herr",     team:"Kenyon",      conf:"D3 Elite",     "100free":47.5,"50free":21.9,"200free":104.1 },
+    { name:"Tyler Moss",     team:"Alabama",     conf:"SEC",          "100free":43.5,"50free":19.9,"200free":95.3 },
+    { name:"Connor Hall",    team:"Georgia Tech", conf:"ACC",         "100free":44.0,"50free":20.3,"200free":96.2 },
+  ],
+  F: [
+    { name:"Ava Chen",       team:"Florida",     conf:"SEC",          "100free":49.1,"50free":22.8,"200free":108.5 },
+    { name:"Sara Muñoz",     team:"NC State",    conf:"ACC",          "100free":49.8,"50free":23.2,"200free":110.0 },
+    { name:"Maya Patel",     team:"Michigan",    conf:"Big 10",       "100free":50.4,"50free":23.5,"200free":111.5 },
+    { name:"Brooke Kim",     team:"Navy",        conf:"Patriot League","100free":52.1,"50free":24.2,"200free":114.5 },
+    { name:"Taylor Ross",    team:"Lafayette",   conf:"Patriot League","100free":53.8,"50free":25.0,"200free":118.0 },
+    { name:"Emma Walsh",     team:"Williams",    conf:"D3 Elite",     "100free":53.2,"50free":24.7,"200free":116.5 },
+    { name:"Lily Grant",     team:"Amherst",     conf:"D3 Elite",     "100free":54.1,"50free":25.2,"200free":119.0 },
+    { name:"Nina Torres",    team:"Georgia",     conf:"SEC",          "100free":49.5,"50free":23.0,"200free":109.3 },
+    { name:"Kate Sullivan",  team:"Virginia",    conf:"ACC",          "100free":50.1,"50free":23.3,"200free":110.8 },
+    { name:"Jess Wu",        team:"Northwestern",conf:"Big 10",       "100free":50.7,"50free":23.6,"200free":112.0 },
+  ]
+};
+
+// ─── Engine ────────────────────────────────────────────────────
+function pctRank(time, d) {
+  const s = d.size;
+  if (time <= d.p10) return Math.max(1, Math.round(s * 0.05 * (time / d.p10)));
+  if (time <= d.p25) return Math.round(s * (0.05 + 0.20 * (time - d.p10) / (d.p25 - d.p10)));
+  if (time <= d.p50) return Math.round(s * (0.25 + 0.25 * (time - d.p25) / (d.p50 - d.p25)));
+  if (time <= d.p75) return Math.round(s * (0.50 + 0.25 * (time - d.p50) / (d.p75 - d.p50)));
+  if (time <= d.p90) return Math.round(s * (0.75 + 0.15 * (time - d.p75) / (d.p90 - d.p75)));
+  return Math.min(s, Math.round(s * (0.90 + 0.10 * Math.min(1, (time - d.p90) / (d.p90 * 0.04)))));
+}
+
+function sirScore(rank, size) {
+  return (1 + (rank - 1) / Math.max(size - 1, 1) * 4).toFixed(3);
+}
+
+function getTier(rank, size) {
+  const p = rank / size;
+  if (p <= 0.05) return ['tier-dominant','Dominant'];
+  if (p <= 0.20) return ['tier-elite','Elite'];
+  if (p <= 0.45) return ['tier-competitive','Competitive'];
+  if (p <= 0.70) return ['tier-average','Average'];
+  return ['tier-below','Below avg'];
+}
+
+function barColor(rank, total) {
+  const p = rank / total;
+  if (p <= 0.15) return '#00C9FF';
+  if (p <= 0.35) return '#22D67A';
+  if (p <= 0.60) return '#F5A623';
+  return '#8FA3BF';
+}
+
+// ─── Tab switching ─────────────────────────────────────────────
+function switchMode(id, btn) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mode-' + id).classList.add('active');
+}
+
+// ─── Recruit mode ──────────────────────────────────────────────
+function runRecruit() {
+  const t50  = parseFloat(document.getElementById('r-50').value)  || null;
+  const t100 = parseFloat(document.getElementById('r-100').value) || null;
+  const t200 = parseFloat(document.getElementById('r-200').value) || null;
+  const g    = document.getElementById('r-gender').value;
+  const el   = document.getElementById('recruit-results');
+
+  if (!t50 && !t100 && !t200) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">⚠️</div><div>Enter at least one time to calculate your rank.</div></div>';
+    return;
+  }
+
+  const confs = Object.keys(CONF_DATA[g]["100free"]);
+  const results = [];
+
+  for (const conf of confs) {
+    const evResults = [];
+    let sumPct = 0, count = 0;
+    const inputs = [
+      { key:'50free',  time: t50,  label:'50 free',  w:0.2833 },
+      { key:'100free', time: t100, label:'100 free', w:0.2833 },
+      { key:'200free', time: t200, label:'200 free', w:0.2833 },
+    ];
+    for (const ev of inputs) {
+      if (!ev.time) continue;
+      const d = CONF_DATA[g][ev.key][conf];
+      const r = pctRank(ev.time, d);
+      evResults.push({ label: ev.label, rank: r, size: d.size });
+      sumPct += r / d.size;
+      count++;
+    }
+    if (!count) continue;
+    const avgPct = sumPct / count;
+    const refSize = CONF_DATA[g]["100free"][conf].size;
+    const approxRank = Math.round(avgPct * refSize);
+    const sir = sirScore(approxRank, refSize);
+    results.push({ conf, approxRank, sir, evResults, size: refSize });
+  }
+
+  results.sort((a, b) => a.approxRank - b.approxRank);
+  const best = results[0];
+
+  let html = '<div style="margin-bottom:1.1rem">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Impact rank by conference</div>';
+  html += '<div class="conf-grid">';
+  for (const r of results) {
+    const [tc, tl] = getTier(r.approxRank, r.size);
+    const isTop = r.conf === best.conf;
+    html += `<div class="conf-card${isTop ? ' top-conf' : ''}">
+      <div class="conf-card-name">${r.conf}</div>
+      <div class="conf-card-rank" style="color:${isTop ? 'var(--cyan)' : 'var(--white)'}">#${r.approxRank}</div>
+      <div class="conf-card-of">of ${r.size}</div>
+      <div class="conf-card-tier ${tc}">${tl}</div>
+      <div class="conf-card-sir">SIR ${r.sir}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  if (best && best.evResults.length) {
+    html += `<div class="breakdown-box">
+      <div class="breakdown-title">Event breakdown — ${best.conf} (your best fit)</div>`;
+    for (const ev of best.evResults) {
+      const barPct = Math.round((1 - (ev.rank - 1) / ev.size) * 100);
+      html += `<div class="breakdown-row">
+        <span class="breakdown-label">${ev.label}</span>
+        <div style="flex:1;margin:0 12px">
+          <div class="bar-mini"><div class="bar-mini-fill" style="width:${barPct}%"></div></div>
+        </div>
+        <span class="breakdown-val">#${ev.rank} <span style="color:var(--slate);font-weight:400">of ${ev.size}</span></span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ─── Transfer mode ─────────────────────────────────────────────
+function runTransfer() {
+  const t50  = parseFloat(document.getElementById('t-50').value)  || null;
+  const t100 = parseFloat(document.getElementById('t-100').value) || null;
+  const t200 = parseFloat(document.getElementById('t-200').value) || null;
+  const g    = document.getElementById('t-gender').value;
+  const el   = document.getElementById('transfer-results');
+
+  if (!t50 && !t100 && !t200) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">⚠️</div><div>Enter at least one time to see your roster fit.</div></div>';
+    return;
+  }
+
+  const rosters = ROSTERS[g];
+  const teamResults = [];
+
+  for (const [team, data] of Object.entries(rosters)) {
+    const rows = [];
+    let totalImpact = 0, n = 0;
+    const checks = [
+      { key:'100free', time:t100, label:'100 free' },
+      { key:'50free',  time:t50,  label:'50 free' },
+      { key:'200free', time:t200, label:'200 free' },
+    ];
+    for (const c of checks) {
+      if (!c.time || !data[c.key]) continue;
+      const sorted = [...data[c.key], c.time].sort((a,b)=>a-b);
+      const rank   = sorted.indexOf(c.time) + 1;
+      const pct    = 1 - (rank - 1) / sorted.length;
+      rows.push({ ev: c.label, rank, total: sorted.length, pct });
+      totalImpact += pct; n++;
+    }
+    if (!n) continue;
+    teamResults.push({ team, conf: data.conf, rows, avgImpact: totalImpact / n });
+  }
+
+  teamResults.sort((a, b) => b.avgImpact - a.avgImpact);
+
+  let html = '<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">Roster fit</div>';
+  teamResults.forEach((t, i) => {
+    const impactPct = Math.round(t.avgImpact * 100);
+    const impactColor = impactPct >= 70 ? 'var(--cyan)' : impactPct >= 45 ? 'var(--green)' : 'var(--amber)';
+    html += `<div class="team-card${i === 0 ? ' best-fit' : ''}">
+      <div class="team-header">
+        <div>
+          <div class="team-name">${t.team}</div>
+          <div class="team-conf">${t.conf}</div>
+        </div>
+        <div class="team-impact-badge" style="background:rgba(0,0,0,0.3);color:${impactColor}">${impactPct}% impact</div>
+      </div>
+      <div class="event-bars">`;
+    for (const r of t.rows) {
+      const barPct = Math.round((1 - (r.rank - 1) / r.total) * 100);
+      const col    = barColor(r.rank, r.total);
+      html += `<div class="bar-row">
+        <span class="bar-ev">${r.ev}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div></div>
+        <span class="bar-rank-text" style="color:${col}">#${r.rank} / ${r.total}</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ─── Coach mode ─────────────────────────────────────────────────
+function runCoach() {
+  const evKey = document.getElementById('c-event').value;
+  const conf  = document.getElementById('c-conf').value;
+  const g     = document.getElementById('c-gender').value;
+  const top   = parseInt(document.getElementById('c-top').value);
+  const el    = document.getElementById('coach-results');
+
+  let swimmers = SAMPLE_SWIMMERS[g].slice();
+  if (conf !== 'all') swimmers = swimmers.filter(s => s.conf === conf);
+  swimmers.sort((a,b) => a[evKey] - b[evKey]);
+  swimmers = swimmers.slice(0, top);
+
+  if (!swimmers.length) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">🔍</div><div>No swimmers match those filters in the current dataset.</div></div>';
+    return;
+  }
+
+  const evLabels = { "100free":"100 free", "50free":"50 free", "200free":"200 free" };
+  let html = `<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">${evLabels[evKey]} · ${conf === 'all' ? 'All D1' : conf} · ${g === 'M' ? 'Men' : 'Women'}</div>`;
+  html += '<div style="overflow-x:auto"><table class="coach-table"><thead><tr><th>#</th><th>Swimmer</th><th>Team</th><th>Conference</th><th>Time</th><th>SIR score</th></tr></thead><tbody>';
+
+  swimmers.forEach((s, i) => {
+    const badgeClass = i === 0 ? 'badge-gold' : i < 3 ? 'badge-silver' : 'badge-other';
+    const d = CONF_DATA[g][evKey][s.conf];
+    let sir = '—';
+    if (d) { const r = pctRank(s[evKey], d); sir = sirScore(r, d.size); }
+    html += `<tr>
+      <td><span class="rank-badge ${badgeClass}">${i+1}</span></td>
+      <td style="font-weight:500">${s.name}</td>
+      <td style="color:var(--slate)">${s.team}</td>
+      <td><span class="tag tag-slate" style="font-size:10px">${s.conf}</span></td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${s[evKey]}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--cyan)">${sir}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ─── Enter key support ─────────────────────────────────────────
+document.querySelectorAll('input').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const panel = inp.closest('.mode-panel');
+      if (panel) panel.querySelector('.calc-btn').click();
+    }
+  });
+});
+</script>
+</body>
+</html>
