@@ -35,6 +35,206 @@ body {
   --radius-lg: 14px;
 }
 
+/* ─── Auth Modal ───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(5,12,24,0.82);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.18);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 480px;
+  padding: 2rem;
+  position: relative;
+  transform: translateY(16px);
+  transition: transform 0.25s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; color: var(--slate);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--white); }
+.modal-logo {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 20px; margin-bottom: 0.25rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-logo span {
+  background: var(--cyan); color: var(--navy);
+  font-size: 10px; font-weight: 700; padding: 2px 6px;
+  border-radius: 4px;
+}
+.modal-subtitle { font-size: 13px; color: var(--slate); margin-bottom: 1.75rem; }
+
+/* Role picker */
+.role-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+.role-card {
+  background: rgba(10,22,40,0.6);
+  border: 2px solid rgba(240,244,255,0.1);
+  border-radius: var(--radius); padding: 1rem 0.75rem;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.role-card:hover { border-color: rgba(0,201,255,0.4); }
+.role-card.selected { border-color: var(--cyan); background: rgba(0,201,255,0.08); }
+.role-icon { font-size: 24px; margin-bottom: 6px; }
+.role-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.role-price {
+  font-size: 11px; color: var(--slate); line-height: 1.4;
+}
+.role-price strong { color: var(--cyan); font-weight: 600; }
+
+/* Auth form steps */
+.auth-step { display: none; }
+.auth-step.active { display: block; }
+.auth-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 1rem 0; color: var(--slate); font-size: 12px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(240,244,255,0.1);
+}
+.auth-toggle {
+  text-align: center; font-size: 13px; color: var(--slate); margin-top: 1rem;
+}
+.auth-toggle a { color: var(--cyan); cursor: pointer; text-decoration: underline; }
+.auth-error {
+  background: rgba(255,92,92,0.12); border: 1px solid rgba(255,92,92,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 13px; color: var(--red); margin-bottom: 1rem; display: none;
+}
+.auth-error.show { display: block; }
+.auth-info {
+  background: rgba(0,201,255,0.08); border: 1px solid rgba(0,201,255,0.2);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 13px; color: var(--cyan); margin-bottom: 1rem;
+}
+
+/* Nav auth state */
+.nav-user {
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-user-badge {
+  font-size: 12px; font-weight: 600; color: var(--slate);
+  font-family: 'Space Grotesk', sans-serif;
+}
+.nav-user-role {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.role-tag-swimmer  { background: rgba(34,214,122,0.15); color: var(--green); }
+.role-tag-coach    { background: rgba(245,166,35,0.15); color: var(--amber); }
+.role-tag-admin    { background: rgba(0,201,255,0.15); color: var(--cyan); }
+.btn-signout {
+  background: none; border: 1px solid rgba(240,244,255,0.15);
+  color: var(--slate); font-size: 12px; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600; padding: 5px 12px; border-radius: var(--radius);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-signout:hover { border-color: rgba(240,244,255,0.4); color: var(--white); }
+
+/* ─── Admin Panel ──────────────────────────────────────────── */
+.admin-panel {
+  background: var(--navy);
+  border-top: 2px solid rgba(0,201,255,0.15);
+  display: none;
+}
+.admin-panel.visible { display: block; }
+.admin-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 1.75rem;
+}
+.admin-badge {
+  background: rgba(0,201,255,0.15); border: 1px solid rgba(0,201,255,0.3);
+  color: var(--cyan); font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 3px 10px; border-radius: 4px;
+}
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.admin-card {
+  background: var(--steel); border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+}
+.admin-card h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700;
+  margin-bottom: 0.35rem; display: flex; align-items: center; gap: 8px;
+}
+.admin-card .card-desc { font-size: 13px; color: var(--slate); margin-bottom: 1.25rem; }
+
+/* CSV drop zone */
+.drop-zone {
+  border: 2px dashed rgba(0,201,255,0.25);
+  border-radius: var(--radius); padding: 2rem 1rem;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+  background: rgba(10,22,40,0.4);
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--cyan); background: rgba(0,201,255,0.06);
+}
+.drop-zone-icon { font-size: 28px; margin-bottom: 8px; }
+.drop-zone-text { font-size: 13px; color: var(--slate); }
+.drop-zone-text strong { color: var(--white); }
+#csv-file-input { display: none; }
+
+.import-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0; }
+.csv-preview {
+  margin-top: 1rem; background: rgba(10,22,40,0.6);
+  border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius); padding: 1rem;
+  max-height: 200px; overflow-y: auto;
+  font-size: 12px; font-family: monospace; color: var(--slate);
+  display: none;
+}
+.csv-preview.show { display: block; }
+.import-result {
+  margin-top: 0.75rem; padding: 10px 14px;
+  border-radius: var(--radius); font-size: 13px; display: none;
+}
+.import-result.success {
+  display: block;
+  background: rgba(34,214,122,0.1); border: 1px solid rgba(34,214,122,0.3);
+  color: var(--green);
+}
+.import-result.error {
+  display: block;
+  background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.3);
+  color: var(--red);
+}
+
+/* User management table */
+.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.user-table th {
+  font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 6px 10px; border-bottom: 1px solid rgba(240,244,255,0.1); text-align: left;
+}
+.user-table td { padding: 8px 10px; border-bottom: 1px solid rgba(240,244,255,0.05); }
+.user-table tr:last-child td { border-bottom: none; }
+.admin-full { grid-column: 1 / -1; }
+
+/* Paywall notice banner */
+.paywall-notice {
+  background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.25);
+  border-radius: var(--radius); padding: 12px 16px; margin-top: 1rem;
+  font-size: 13px; color: var(--amber); display: none;
+}
+.paywall-notice.show { display: flex; align-items: center; gap: 10px; }
+
 /* ─── Nav ──────────────────────────────────────────────────── */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -504,7 +704,9 @@ footer {
     <li><a href="#how">How it works</a></li>
     <li><a href="#philosophy">Philosophy</a></li>
   </ul>
-  <a class="nav-cta" href="#tool">Try it free</a>
+  <div id="nav-auth-area">
+    <a class="nav-cta" href="#" onclick="openAuthModal(event)">Sign In</a>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -780,17 +982,22 @@ footer {
       <div class="how-card">
         <div class="how-number">STEP 01</div>
         <div class="how-title">Percentile mapping</div>
-        <p class="how-desc">Each time is mapped against the conference's percentile distribution for that event and season.</p>
+        <p class="how-desc">Each time is mapped against the conference's percentile distribution for that event and season. Where you finish in the distribution — not the raw time — is what matters.</p>
       </div>
       <div class="how-card">
         <div class="how-number">STEP 02</div>
-        <div class="how-title">SIR score</div>
-        <p class="how-desc">Scores run from 1.000 (best) upward — like golf. Lower is better.</p>
+        <div class="how-title">Championship weighting</div>
+        <p class="how-desc">Individual events contribute 28.33% each. Relay contribution adds the remaining 15%, split equally. This mirrors the scoring structure of actual conference championships.</p>
       </div>
       <div class="how-card">
         <div class="how-number">STEP 03</div>
+        <div class="how-title">SIR score</div>
+        <p class="how-desc">Scores run from 1.000 (best) upward — like golf. Lower is better. A 1.000 is the top of the conference. A 3.000 is average. A 5.000 is at the bottom of the field.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 04</div>
         <div class="how-title">Context shift</div>
-        <p class="how-desc">The same SIR process runs independently for each conference or division of swimming using the best times in the conference. A swimmer ranked #42 in the ACC might rank #3 in the Patriot League — that's the point.</p>
+        <p class="how-desc">The same SIR process runs independently for each conference using that conference's benchmarks. A swimmer ranked #42 in the ACC might rank #3 in the Patriot League — that's the point.</p>
       </div>
     </div>
   </div>
@@ -820,6 +1027,173 @@ footer {
     </div>
   </div>
 </footer>
+
+<!-- ─── Auth Modal ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div class="modal-logo">SIR <span>BETA</span></div>
+    <div class="modal-subtitle" id="modal-subtitle">Choose your role to continue</div>
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Step 1: Role selection -->
+    <div class="auth-step active" id="step-role">
+      <div class="role-grid">
+        <div class="role-card" id="role-swimmer" onclick="selectRole('swimmer')">
+          <div class="role-icon">🏊</div>
+          <div class="role-name">Swimmer</div>
+          <div class="role-price"><strong>$5/mo</strong><br>or $50/yr</div>
+        </div>
+        <div class="role-card" id="role-coach" onclick="selectRole('coach')">
+          <div class="role-icon">📋</div>
+          <div class="role-name">Coach</div>
+          <div class="role-price"><strong>$10/mo</strong><br>or $100/yr</div>
+        </div>
+        <div class="role-card" id="role-admin" onclick="selectRole('admin')">
+          <div class="role-icon">🔐</div>
+          <div class="role-name">Admin</div>
+          <div class="role-price">Invite<br>only</div>
+        </div>
+      </div>
+      <div class="paywall-notice" id="paywall-notice">
+        <span>⚠️</span>
+        <span id="paywall-text"></span>
+      </div>
+      <button class="calc-btn" onclick="goToCredentials()" style="margin-top:1rem">Continue →</button>
+    </div>
+
+    <!-- Step 2: Credentials -->
+    <div class="auth-step" id="step-creds">
+      <div id="sign-in-form">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" />
+        </div>
+        <button class="calc-btn" onclick="handleSignIn()">Sign In</button>
+        <div class="auth-divider">or</div>
+        <div class="auth-toggle">No account? <a onclick="showSignUp()">Create one</a></div>
+      </div>
+      <div id="sign-up-form" style="display:none">
+        <div class="auth-info" id="admin-invite-note" style="display:none">
+          Admin accounts must be approved. Enter your details and an existing admin will activate your account.
+        </div>
+        <div class="field">
+          <label>Name</label>
+          <input type="text" id="auth-name" placeholder="First Last" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="auth-email-up" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="auth-password-up" placeholder="min 6 characters" />
+        </div>
+        <div class="field" id="team-field">
+          <label>Team / School</label>
+          <input type="text" id="auth-team" placeholder="e.g. Georgia Tech" />
+        </div>
+        <button class="calc-btn" onclick="handleSignUp()">Create Account</button>
+        <div class="auth-divider">or</div>
+        <div class="auth-toggle">Have an account? <a onclick="showSignIn()">Sign in</a></div>
+      </div>
+      <div style="margin-top:1rem">
+        <a onclick="goToRoleStep()" style="font-size:12px;color:var(--slate);cursor:pointer">← Change role</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Admin Panel ─────────────────────────────────────────── -->
+<section class="admin-panel" id="admin-panel">
+  <div class="container">
+    <div class="admin-header">
+      <div class="section-title" style="margin-bottom:0">Admin Dashboard</div>
+      <span class="admin-badge">Admin Only</span>
+    </div>
+    <div class="admin-grid">
+
+      <!-- CSV Import Card -->
+      <div class="admin-card">
+        <h3>📥 Import CSV Data</h3>
+        <div class="card-desc">
+          Upload a ranked swim list (rank, name, school, meet, time). 
+          Data will be parsed into real percentile benchmarks replacing estimated values.
+        </div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="drop-zone-icon">📄</div>
+          <div class="drop-zone-text"><strong>Click to upload</strong> or drag & drop a CSV</div>
+          <div class="drop-zone-text" style="margin-top:4px;font-size:11px">rank, name, school, meet, time</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" onchange="handleCSVFile(this.files[0])">
+        <div class="import-meta">
+          <div class="field" style="margin:0">
+            <label>Event</label>
+            <select id="import-event">
+              <option value="100free">100 Free</option>
+              <option value="50free">50 Free</option>
+              <option value="200free">200 Free</option>
+              <option value="100fly">100 Fly</option>
+              <option value="200fly">200 Fly</option>
+              <option value="100back">100 Back</option>
+              <option value="200back">200 Back</option>
+              <option value="100breast">100 Breast</option>
+              <option value="200breast">200 Breast</option>
+              <option value="200im">200 IM</option>
+              <option value="400im">400 IM</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Gender</label>
+            <select id="import-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Conference</label>
+            <input type="text" id="import-conf" placeholder="e.g. SEC" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Season</label>
+            <input type="text" id="import-season" placeholder="e.g. 2025-26" value="2025-26" />
+          </div>
+        </div>
+        <div class="csv-preview" id="csv-preview"></div>
+        <button class="calc-btn" onclick="commitCSVImport()" style="margin-top:0.75rem" id="commit-btn" disabled>
+          Import & Build Benchmarks
+        </button>
+        <div class="import-result" id="import-result"></div>
+      </div>
+
+      <!-- Imported Datasets Card -->
+      <div class="admin-card">
+        <h3>📊 Imported Datasets</h3>
+        <div class="card-desc">All real-data benchmarks currently loaded. These override estimated percentile values in the calculator.</div>
+        <div id="dataset-list" style="max-height:340px;overflow-y:auto"></div>
+      </div>
+
+      <!-- User Management -->
+      <div class="admin-card admin-full">
+        <h3>👥 User Management</h3>
+        <div class="card-desc">Users who have created accounts. Admins can promote or deactivate accounts.</div>
+        <div style="overflow-x:auto">
+          <table class="user-table" id="user-table">
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="user-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
 
 <script>
 // ─── Data ─────────────────────────────────────────────────────
@@ -1165,6 +1539,394 @@ document.querySelectorAll('input').forEach(inp => {
       if (panel) panel.querySelector('.calc-btn').click();
     }
   });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH SYSTEM  (localStorage-backed demo — swap for real backend)
+// ═══════════════════════════════════════════════════════════════
+let SIR_AUTH = JSON.parse(localStorage.getItem('sir_auth') || 'null');
+let selectedRole = null;
+let pendingCSVData = null;
+
+const ROLE_META = {
+  swimmer: { label: 'Swimmer', tag: 'role-tag-swimmer', priceShort: '$5/mo or $50/yr' },
+  coach:   { label: 'Coach',   tag: 'role-tag-coach',   priceShort: '$10/mo or $100/yr' },
+  admin:   { label: 'Admin',   tag: 'role-tag-admin',   priceShort: 'Invite only' },
+};
+
+function openAuthModal(e) {
+  if (e) e.preventDefault();
+  if (SIR_AUTH) return; // already signed in
+  document.getElementById('auth-modal').classList.add('open');
+  selectedRole = null;
+  goToRoleStep();
+}
+function closeAuthModal() {
+  document.getElementById('auth-modal').classList.remove('open');
+  clearAuthError();
+}
+
+function selectRole(r) {
+  selectedRole = r;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('role-' + r).classList.add('selected');
+  const notice = document.getElementById('paywall-notice');
+  const text   = document.getElementById('paywall-text');
+  if (r === 'swimmer') {
+    notice.classList.add('show');
+    text.textContent = 'Swimmer access will require $5/month or $50/year. (Billing not yet active — free during beta.)';
+  } else if (r === 'coach') {
+    notice.classList.add('show');
+    text.textContent = 'Coach access will require $10/month or $100/year. (Billing not yet active — free during beta.)';
+  } else {
+    notice.classList.remove('show');
+  }
+}
+
+function goToCredentials() {
+  if (!selectedRole) { showAuthError('Please select a role.'); return; }
+  clearAuthError();
+  document.getElementById('step-role').classList.remove('active');
+  document.getElementById('step-creds').classList.add('active');
+  document.getElementById('modal-subtitle').textContent =
+    ROLE_META[selectedRole].label + ' — ' + ROLE_META[selectedRole].priceShort;
+  document.getElementById('admin-invite-note').style.display =
+    selectedRole === 'admin' ? 'block' : 'none';
+}
+
+function goToRoleStep() {
+  clearAuthError();
+  document.getElementById('step-creds').classList.remove('active');
+  document.getElementById('step-role').classList.add('active');
+  document.getElementById('modal-subtitle').textContent = 'Choose your role to continue';
+}
+
+function showSignUp() {
+  document.getElementById('sign-in-form').style.display = 'none';
+  document.getElementById('sign-up-form').style.display = 'block';
+}
+function showSignIn() {
+  document.getElementById('sign-up-form').style.display = 'none';
+  document.getElementById('sign-in-form').style.display = 'block';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.classList.add('show');
+}
+function clearAuthError() {
+  const el = document.getElementById('auth-error');
+  el.textContent = ''; el.classList.remove('show');
+}
+
+// Simple localStorage-based user store
+function getUsers() { return JSON.parse(localStorage.getItem('sir_users') || '[]'); }
+function saveUsers(u) { localStorage.setItem('sir_users', JSON.stringify(u)); }
+
+function handleSignIn() {
+  const email = document.getElementById('auth-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('auth-password').value;
+  if (!email || !pass) { showAuthError('Please fill in all fields.'); return; }
+  const users = getUsers();
+  const user  = users.find(u => u.email === email && u.password === pass);
+  if (!user) { showAuthError('Incorrect email or password.'); return; }
+  if (user.status === 'pending') { showAuthError('Your account is pending admin approval.'); return; }
+  signInAs(user);
+}
+
+function handleSignUp() {
+  const name  = document.getElementById('auth-name').value.trim();
+  const email = document.getElementById('auth-email-up').value.trim().toLowerCase();
+  const pass  = document.getElementById('auth-password-up').value;
+  const team  = document.getElementById('auth-team').value.trim();
+  if (!name || !email || !pass) { showAuthError('Please fill in all fields.'); return; }
+  if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  const users = getUsers();
+  if (users.find(u => u.email === email)) { showAuthError('Email already registered.'); return; }
+  const newUser = {
+    id: Date.now(),
+    name, email, password: pass, team,
+    role: selectedRole,
+    status: selectedRole === 'admin' ? 'pending' : 'active',
+    createdAt: new Date().toISOString(),
+  };
+  // First admin is auto-approved for demo purposes
+  if (selectedRole === 'admin' && users.filter(u => u.role === 'admin').length === 0) {
+    newUser.status = 'active';
+  }
+  users.push(newUser);
+  saveUsers(users);
+  if (newUser.status === 'pending') {
+    showAuthError('Account created! An admin will review and activate it.');
+    return;
+  }
+  signInAs(newUser);
+}
+
+function signInAs(user) {
+  SIR_AUTH = user;
+  localStorage.setItem('sir_auth', JSON.stringify(user));
+  closeAuthModal();
+  updateNavAuth();
+  if (user.role === 'admin') showAdminPanel();
+}
+
+function signOut() {
+  SIR_AUTH = null;
+  localStorage.removeItem('sir_auth');
+  updateNavAuth();
+  document.getElementById('admin-panel').classList.remove('visible');
+}
+
+function updateNavAuth() {
+  const area = document.getElementById('nav-auth-area');
+  if (!SIR_AUTH) {
+    area.innerHTML = '<a class="nav-cta" href="#" onclick="openAuthModal(event)">Sign In</a>';
+  } else {
+    const m = ROLE_META[SIR_AUTH.role];
+    area.innerHTML = `
+      <div class="nav-user">
+        <span class="nav-user-badge">${SIR_AUTH.name}</span>
+        <span class="nav-user-role ${m.tag}">${m.label}</span>
+        <button class="btn-signout" onclick="signOut()">Sign out</button>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════════════
+function showAdminPanel() {
+  document.getElementById('admin-panel').classList.add('visible');
+  renderDatasets();
+  renderUserTable();
+}
+
+// ── CSV Import ─────────────────────────────────────────────────
+function handleCSVFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    if (!rows.length) {
+      document.getElementById('import-result').className = 'import-result error';
+      document.getElementById('import-result').textContent = 'Could not parse CSV. Check format.';
+      document.getElementById('import-result').style.display = 'block';
+      return;
+    }
+    pendingCSVData = rows;
+    const preview = document.getElementById('csv-preview');
+    preview.textContent = rows.slice(0, 8).map(r =>
+      `#${r.rank}  ${r.name.padEnd(28)} ${r.time}s`
+    ).join('\n') + (rows.length > 8 ? `\n... and ${rows.length - 8} more` : '');
+    preview.classList.add('show');
+    document.getElementById('commit-btn').disabled = false;
+    document.getElementById('import-result').style.display = 'none';
+    const dz = document.getElementById('drop-zone');
+    dz.querySelector('.drop-zone-text').innerHTML =
+      `<strong>${file.name}</strong> — ${rows.length} rows loaded`;
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const rows  = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    // Handle quoted fields
+    const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || line.split(',');
+    const clean = cols.map(c => c.replace(/^"|"$/g,'').trim());
+    const rankRaw = clean[0];
+    const rank = parseInt(rankRaw);
+    if (isNaN(rank)) continue;
+    // col layout: rank, name, school(may be empty), meet, time
+    let name, time;
+    if (clean.length >= 5) {
+      name = clean[1];
+      time = parseFloat(clean[4]);
+    } else if (clean.length === 4) {
+      name = clean[1];
+      time = parseFloat(clean[3]);
+    } else continue;
+    if (isNaN(time)) continue;
+    rows.push({ rank, name, time });
+  }
+  return rows;
+}
+
+function computePercentilesFromList(rows) {
+  const times = rows.map(r => r.time).sort((a,b) => a - b);
+  const n     = times.length;
+  function pct(p) {
+    const idx = (p / 100) * (n - 1);
+    const lo  = Math.floor(idx), hi = Math.ceil(idx);
+    return +(times[lo] + (idx - lo) * (times[hi] - times[lo])).toFixed(3);
+  }
+  return { p10: pct(10), p25: pct(25), p50: pct(50), p75: pct(75), p90: pct(90), size: n };
+}
+
+function getImportedDatasets() {
+  return JSON.parse(localStorage.getItem('sir_imported_datasets') || '[]');
+}
+function saveImportedDatasets(d) { localStorage.setItem('sir_imported_datasets', JSON.stringify(d)); }
+
+function commitCSVImport() {
+  if (!pendingCSVData || !pendingCSVData.length) return;
+  const event  = document.getElementById('import-event').value;
+  const gender = document.getElementById('import-gender').value;
+  const conf   = document.getElementById('import-conf').value.trim().toUpperCase();
+  const season = document.getElementById('import-season').value.trim();
+  if (!conf) { alert('Please enter a conference name.'); return; }
+
+  const bench = computePercentilesFromList(pendingCSVData);
+
+  // Inject into live CONF_DATA
+  if (!CONF_DATA[gender]) CONF_DATA[gender] = {};
+  if (!CONF_DATA[gender][event]) CONF_DATA[gender][event] = {};
+  CONF_DATA[gender][event][conf] = bench;
+
+  // Persist metadata
+  const datasets = getImportedDatasets();
+  const existing = datasets.findIndex(d =>
+    d.gender === gender && d.event === event && d.conf === conf && d.season === season);
+  const entry = { gender, event, conf, season, ...bench,
+    importedAt: new Date().toLocaleString(), rows: pendingCSVData.length };
+  if (existing >= 0) datasets[existing] = entry; else datasets.push(entry);
+  saveImportedDatasets(datasets);
+
+  // Also persist actual benchmark data for page reloads
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  if (!stored[gender]) stored[gender] = {};
+  if (!stored[gender][event]) stored[gender][event] = {};
+  stored[gender][event][conf] = bench;
+  localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
+
+  const res = document.getElementById('import-result');
+  res.className = 'import-result success';
+  res.textContent = `✓ Imported ${pendingCSVData.length} swimmers for ${conf} ${gender} ${event} (${season}). Benchmarks live.`;
+  pendingCSVData = null;
+  document.getElementById('commit-btn').disabled = true;
+  renderDatasets();
+}
+
+function renderDatasets() {
+  const datasets = getImportedDatasets();
+  const el = document.getElementById('dataset-list');
+  if (!datasets.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--slate);padding:0.5rem 0">No imported datasets yet. Upload a CSV above.</div>';
+    return;
+  }
+  el.innerHTML = datasets.map(d => `
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:10px 0;border-bottom:1px solid rgba(240,244,255,0.06)">
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600">
+          ${d.conf} ${d.gender} — ${d.event}
+          <span class="tag tag-cyan" style="margin-left:6px;font-size:10px">${d.season}</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-top:2px">
+          n=${d.size} · p50=${d.p50}s · imported ${d.importedAt}
+        </div>
+      </div>
+      <button onclick="deleteDataset('${d.gender}','${d.event}','${d.conf}','${d.season}')"
+        style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);
+        color:var(--red);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer">
+        Remove
+      </button>
+    </div>`).join('');
+}
+
+function deleteDataset(gender, event, conf, season) {
+  let datasets = getImportedDatasets().filter(d =>
+    !(d.gender === gender && d.event === event && d.conf === conf && d.season === season));
+  saveImportedDatasets(datasets);
+  // Remove from live CONF_DATA
+  if (CONF_DATA[gender]?.[event]?.[conf]) delete CONF_DATA[gender][event][conf];
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  if (stored[gender]?.[event]?.[conf]) delete stored[gender][event][conf];
+  localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
+  renderDatasets();
+}
+
+function renderUserTable() {
+  const users = getUsers();
+  const tbody = document.getElementById('user-table-body');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--slate);font-size:13px">No registered users yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const m = ROLE_META[u.role] || { tag:'tag-slate', label: u.role };
+    const statusColor = u.status === 'active' ? 'var(--green)' : 'var(--amber)';
+    return `<tr>
+      <td style="font-weight:500">${u.name}</td>
+      <td style="color:var(--slate)">${u.email}</td>
+      <td><span class="nav-user-role ${m.tag}">${m.label}</span></td>
+      <td style="color:var(--slate)">${u.team || '—'}</td>
+      <td style="color:${statusColor};font-size:12px;font-weight:600;text-transform:uppercase">${u.status}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        ${u.status === 'pending'
+          ? `<button onclick="approveUser(${u.id})" style="background:rgba(34,214,122,0.1);border:1px solid rgba(34,214,122,0.2);color:var(--green);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Approve</button>`
+          : ''}
+        ${u.role !== 'admin'
+          ? `<button onclick="promoteUser(${u.id})" style="background:rgba(0,201,255,0.1);border:1px solid rgba(0,201,255,0.2);color:var(--cyan);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">→ Admin</button>`
+          : ''}
+        <button onclick="removeUser(${u.id})" style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);color:var(--red);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Remove</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function approveUser(id) {
+  const users = getUsers().map(u => u.id === id ? { ...u, status: 'active' } : u);
+  saveUsers(users); renderUserTable();
+}
+function promoteUser(id) {
+  if (!confirm('Promote this user to Admin?')) return;
+  const users = getUsers().map(u => u.id === id ? { ...u, role: 'admin' } : u);
+  saveUsers(users); renderUserTable();
+}
+function removeUser(id) {
+  if (!confirm('Remove this user?')) return;
+  saveUsers(getUsers().filter(u => u.id !== id));
+  renderUserTable();
+}
+
+// ── Drag-and-drop on drop zone ─────────────────────────────────
+(function() {
+  const dz = document.getElementById('drop-zone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleCSVFile(file);
+  });
+})();
+
+// ── Restore persisted overrides on page load ───────────────────
+(function() {
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  for (const g of Object.keys(stored)) {
+    if (!CONF_DATA[g]) CONF_DATA[g] = {};
+    for (const ev of Object.keys(stored[g])) {
+      if (!CONF_DATA[g][ev]) CONF_DATA[g][ev] = {};
+      Object.assign(CONF_DATA[g][ev], stored[g][ev]);
+    }
+  }
+  // Restore session if still stored
+  if (SIR_AUTH) {
+    updateNavAuth();
+    if (SIR_AUTH.role === 'admin') showAdminPanel();
+  }
+})();
+
+// Close modal on overlay click
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
 });
 </script>
 </body>
