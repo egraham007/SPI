@@ -394,9 +394,12 @@ section { padding: 5rem 2rem; }
   border-bottom: 1px solid rgba(0,201,255,0.1);
 }
 .philosophy-inner {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 3rem; align-items: center;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; max-width: 800px; margin: 0 auto; gap: 2.5rem;
 }
+.philosophy-inner > div { width: 100%; }
+.philosophy-quote { text-align: center; }
+.compare-table-wrap { max-width: 560px; margin: 0 auto; width: 100%; }
 .philosophy-quote {
   font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(20px, 3vw, 30px); font-weight: 600;
@@ -626,10 +629,11 @@ section { padding: 5rem 2rem; }
 .badge-other  { background: rgba(240,244,255,0.07); color: var(--slate); }
 
 /* ─── How it works ─────────────────────────────────────────── */
-.how-section { background: var(--steel); }
+.how-section { background: var(--steel); text-align: center; }
+.how-section .section-sub { margin: 0 auto; }
 .how-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem; margin-top: 2.5rem;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem; margin-top: 2.5rem; max-width: 900px; margin-left: auto; margin-right: auto;
 }
 .how-card {
   background: rgba(10,22,40,0.5); border: 1px solid rgba(0,201,255,0.1);
@@ -670,7 +674,8 @@ footer {
 
 /* ─── Responsive ───────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .philosophy-inner { grid-template-columns: 1fr; }
+  .philosophy-inner { flex-direction: column; }
+  .how-grid { grid-template-columns: 1fr; }
   .tool-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
@@ -782,7 +787,7 @@ footer {
   <div class="container">
     <div class="philosophy-inner">
       <div>
-        <div class="section-label">Why SIR is different</div>
+        <div class="section-label" style="text-align:center">Why SIR is different</div>
         <p class="philosophy-quote">
           Other systems ask <em>"how fast?"</em><br>
           We ask <em>"how impactful?"</em>
@@ -792,6 +797,7 @@ footer {
         </p>
       </div>
       <div>
+      <div class="compare-table-wrap">
         <table class="compare-table">
           <thead>
             <tr>
@@ -818,12 +824,7 @@ footer {
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- RANKING TOOL -->
+      </div><!-- /compare-table-wrap -->
 <section class="modes-section" id="tool">
   <div class="container">
     <div class="section-label">Interactive tool</div>
@@ -986,16 +987,11 @@ footer {
       </div>
       <div class="how-card">
         <div class="how-number">STEP 02</div>
-        <div class="how-title">Championship weighting</div>
-        <p class="how-desc">Individual events contribute 28.33% each. Relay contribution adds the remaining 15%, split equally. This mirrors the scoring structure of actual conference championships.</p>
-      </div>
-      <div class="how-card">
-        <div class="how-number">STEP 03</div>
         <div class="how-title">SIR score</div>
         <p class="how-desc">Scores run from 1.000 (best) upward — like golf. Lower is better. A 1.000 is the top of the conference. A 3.000 is average. A 5.000 is at the bottom of the field.</p>
       </div>
       <div class="how-card">
-        <div class="how-number">STEP 04</div>
+        <div class="how-number">STEP 03</div>
         <div class="how-title">Context shift</div>
         <p class="how-desc">The same SIR process runs independently for each conference using that conference's benchmarks. A swimmer ranked #42 in the ACC might rank #3 in the Patriot League — that's the point.</p>
       </div>
@@ -1060,6 +1056,9 @@ footer {
         <span id="paywall-text"></span>
       </div>
       <button class="calc-btn" onclick="goToCredentials()" style="margin-top:1rem">Continue →</button>
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(240,244,255,0.08);text-align:center">
+        <div id="bootstrap-hint" style="font-size:12px;color:var(--slate)"></div>
+      </div>
     </div>
 
     <!-- Step 2: Credentials -->
@@ -1196,6 +1195,46 @@ footer {
 </section>
 
 <script>
+// ─── Free search gate ──────────────────────────────────────────
+// Guests get 1 free search total. After that, prompt sign-in/payment.
+let freeSearchesUsed = parseInt(sessionStorage.getItem('sir_free_searches') || '0');
+
+function checkSearchGate(resultElId) {
+  // Signed-in users always pass
+  if (SIR_AUTH) return true;
+  if (freeSearchesUsed < 1) return true; // first search is free
+  // Show paywall prompt in the results panel
+  const el = document.getElementById(resultElId);
+  el.innerHTML = `
+    <div class="results-empty" style="gap:16px">
+      <div class="empty-icon">🔒</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--white)">
+        Free search used
+      </div>
+      <div style="color:var(--slate);font-size:14px;max-width:320px;text-align:center;line-height:1.6">
+        You've used your free look. Sign in or create an account to keep searching.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+        <button class="btn-primary" onclick="openAuthModal(event)" style="font-size:14px;padding:10px 22px">
+          Sign In / Create Account
+        </button>
+      </div>
+      <div style="font-size:12px;color:var(--slate);margin-top:4px">
+        Swimmer — <strong style="color:var(--cyan)">$5/mo</strong> &nbsp;·&nbsp;
+        Coach — <strong style="color:var(--amber)">$10/mo</strong> &nbsp;·&nbsp;
+        <em style="color:var(--slate)">Free during beta</em>
+      </div>
+    </div>`;
+  return false;
+}
+
+function recordFreeSearch() {
+  if (!SIR_AUTH) {
+    freeSearchesUsed++;
+    sessionStorage.setItem('sir_free_searches', freeSearchesUsed);
+  }
+}
+
 // ─── Data ─────────────────────────────────────────────────────
 const CONF_DATA = {
   M: {
@@ -1348,6 +1387,7 @@ function switchMode(id, btn) {
 
 // ─── Recruit mode ──────────────────────────────────────────────
 function runRecruit() {
+  if (!checkSearchGate('recruit-results')) return;
   const t50  = parseFloat(document.getElementById('r-50').value)  || null;
   const t100 = parseFloat(document.getElementById('r-100').value) || null;
   const t200 = parseFloat(document.getElementById('r-200').value) || null;
@@ -1421,11 +1461,13 @@ function runRecruit() {
     html += '</div>';
   }
 
+  recordFreeSearch();
   el.innerHTML = html;
 }
 
 // ─── Transfer mode ─────────────────────────────────────────────
 function runTransfer() {
+  if (!checkSearchGate('transfer-results')) return;
   const t50  = parseFloat(document.getElementById('t-50').value)  || null;
   const t100 = parseFloat(document.getElementById('t-100').value) || null;
   const t200 = parseFloat(document.getElementById('t-200').value) || null;
@@ -1487,11 +1529,13 @@ function runTransfer() {
     html += `</div></div>`;
   });
 
+  recordFreeSearch();
   el.innerHTML = html;
 }
 
 // ─── Coach mode ─────────────────────────────────────────────────
 function runCoach() {
+  if (!checkSearchGate('coach-results')) return;
   const evKey = document.getElementById('c-event').value;
   const conf  = document.getElementById('c-conf').value;
   const g     = document.getElementById('c-gender').value;
@@ -1528,6 +1572,7 @@ function runCoach() {
   });
 
   html += '</tbody></table></div>';
+  recordFreeSearch();
   el.innerHTML = html;
 }
 
@@ -1556,10 +1601,18 @@ const ROLE_META = {
 
 function openAuthModal(e) {
   if (e) e.preventDefault();
-  if (SIR_AUTH) return; // already signed in
+  if (SIR_AUTH) return;
   document.getElementById('auth-modal').classList.add('open');
   selectedRole = null;
   goToRoleStep();
+  // Show bootstrap hint if no admin exists yet
+  const hint = document.getElementById('bootstrap-hint');
+  const admins = getUsers().filter(u => u.role === 'admin' && u.status === 'active');
+  if (admins.length === 0) {
+    hint.innerHTML = '🔑 <strong style="color:var(--cyan)">No admin yet?</strong> Select Admin role → Create Account. The first admin is auto-approved.';
+  } else {
+    hint.innerHTML = '';
+  }
 }
 function closeAuthModal() {
   document.getElementById('auth-modal').classList.remove('open');
