@@ -1787,7 +1787,190 @@ const SAMPLE_SWIMMERS = {
   ]
 };
 
-// ─── Engine ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// REAL RANKED LISTS  — keyed as "CONF|eventkey|GENDER"
+// Populated from seeded data below AND from admin CSV imports.
+// ══════════════════════════════════════════════════════════════
+const REAL_LISTS = {};
+
+// ── Seed: SEC Men's 100 Free (from uploaded CSV) ───────────────
+REAL_LISTS['SEC|100free|M'] = [
+  {rank:1,  name:"Josh Liendo",               meet:"NCAA Championships",             time:39.91},
+  {rank:2,  name:"Jere Hribar",               meet:"NCAA Championships",             time:40.33},
+  {rank:3,  name:"Guilherme Caribé",          meet:"NCAA Championships",             time:40.41},
+  {rank:4,  name:"Hubert KOS",                meet:"NCAA Championships",             time:41.15},
+  {rank:5,  name:"Nikoli Blackman",           meet:"NCAA Championships",             time:41.45},
+  {rank:6,  name:"Garrett Gould",             meet:"NCAA Championships",             time:41.47},
+  {rank:7,  name:"Rafael Fente Damers",       meet:"SEC Championships",              time:41.58},
+  {rank:8,  name:"Luke Nebrich",              meet:"Mizzou Invitational",            time:41.63},
+  {rank:9,  name:"Sean Niewold",              meet:"NCAA Championships",             time:41.65},
+  {rank:10, name:"Luca Urlando",              meet:"Georgia vs. Tennessee",          time:41.71},
+  {rank:11, name:"Koby Bujak-upton",          meet:"NCAA Championships",             time:41.80},
+  {rank:12, name:"Alexander Painter",         meet:"SEC Championships",              time:41.81},
+  {rank:13, name:"Pedro Sansone Teixeira",    meet:"Mich vs. UVA / TN vs. ASU",     time:41.83},
+  {rank:14, name:"Alexey Glivinsky",          meet:"Ohio State Winter Invite",       time:41.86},
+  {rank:14, name:"Devin Dilger",              meet:"NCAA Championships",             time:41.86},
+  {rank:16, name:"Daniel Krichevsky",         meet:"SEC Championships",              time:41.87},
+  {rank:17, name:"Ben Sytsma",               meet:"NCAA Championships",             time:42.22},
+  {rank:18, name:"Falemana Tuufui",          meet:"SEC Championships",              time:42.24},
+  {rank:19, name:"Stepan Goncharov",         meet:"UGA Fall Invitational",          time:42.28},
+  {rank:20, name:"Nate Germonprez",          meet:"Texas Hall of Fame Inv.",        time:42.31},
+  {rank:21, name:"Lysander OSMAN",           meet:"SEC Championships",              time:42.35},
+  {rank:22, name:"Ksawery Masiuk",           meet:"SEC Championships",              time:42.40},
+  {rank:23, name:"Ben Scholl",               meet:"SEC Championships",              time:42.41},
+  {rank:24, name:"Will Modglin",             meet:"Texas Hall of Fame Inv.",        time:42.43},
+  {rank:25, name:"Warner Russ",              meet:"James E Martin Invitational",    time:42.48},
+  {rank:26, name:"Calvin Fry",               meet:"Texas Hall of Fame Inv.",        time:42.49},
+  {rank:27, name:"Kalle Mäkinen",            meet:"NCSU Invitational",              time:42.57},
+  {rank:28, name:"Luke Bedsole",             meet:"NCSU Invitational",              time:42.62},
+  {rank:29, name:"Tane Bidois",              meet:"SEC Championships",              time:42.69},
+  {rank:30, name:"Toni Dragoja",             meet:"Alabama vs. Texas",              time:42.70},
+  {rank:31, name:"Simon MEUBRY",             meet:"UGA Fall Invitational",          time:42.78},
+  {rank:32, name:"Camden Taylor",            meet:"Eddie Reese Texas Showdown",     time:42.83},
+  {rank:33, name:"Tomas Koski",              meet:"UGA Fall Invitational",          time:42.86},
+  {rank:34, name:"Francois Malherbe",        meet:"Mizzou Invitational",            time:42.88},
+  {rank:35, name:"Aiden Norman",             meet:"Florida vs. Auburn",             time:42.91},
+  {rank:36, name:"Zarek Wilson",             meet:"SEC Championships",              time:42.92},
+  {rank:36, name:"Jon VanZandt",             meet:"James E Martin Invitational",    time:42.92},
+  {rank:38, name:"Sohib Khaled",             meet:"NCSU Invitational",              time:42.93},
+  {rank:39, name:"Sascha Macht",             meet:"UGA Fall Invitational",          time:42.94},
+  {rank:39, name:"Jonathan Hoole",           meet:"SEC Championships",              time:42.94},
+  {rank:41, name:"Kamal Muhammad",           meet:"SEC Championships",              time:42.98},
+  {rank:42, name:"Evan Bailey",              meet:"SEC Championships",              time:43.00},
+  {rank:43, name:"Ruard Van Renen",          meet:"NC State vs. Georgia",           time:43.01},
+  {rank:44, name:"Alec Filipovic",           meet:"Texas Hall of Fame Inv.",        time:43.03},
+  {rank:45, name:"Scotty Buff",              meet:"UGA Fall Invitational",          time:43.19},
+  {rank:45, name:"Alejandro Michelena",      meet:"SEC Championships",              time:43.19},
+  {rank:47, name:"Luke Sandberg",            meet:"UGA Fall Invitational",          time:43.22},
+  {rank:47, name:"Paul Dardis",              meet:"UGA Fall Invitational",          time:43.22},
+  {rank:47, name:"Oliver Millán de Miguel",  meet:"SEC Championships",              time:43.22},
+  {rank:50, name:"Roman Valdez",             meet:"UGA Fall Invitational",          time:43.24},
+];
+
+// ══════════════════════════════════════════════════════════════
+// FRACTIONAL IMPACT ENGINE
+// For any conference/event/gender with a real ranked list,
+// score = fractional interpolation between actual ranked swims.
+// No percentile curves. No guessing.
+//
+// Key:  "CONF|eventkey|GENDER"  e.g. "SEC|100free|M"
+//
+// Score meaning:
+//   25.000 = exactly ties #25
+//   25.130 = 13% of the way between #25 and #26 (by time gap)
+//   25.500 = exactly halfway between #25 and #26
+// ══════════════════════════════════════════════════════════════
+
+function _buildAnchors(swims) {
+  // Build unique-time anchor points: [{time, score}]
+  // Tied ranks share the same integer score anchor.
+  const seen = new Map();
+  for (const s of swims) {
+    if (!seen.has(s.time)) seen.set(s.time, s.rank);
+  }
+  return [...seen.entries()]
+    .map(([time, score]) => ({ time, score }))
+    .sort((a, b) => a.time - b.time);
+}
+
+function _tailGap(anchors, n = 5) {
+  const tail = anchors.slice(-Math.min(n, anchors.length));
+  if (tail.length < 2) return 0.10;
+  let sum = 0;
+  for (let i = 1; i < tail.length; i++) sum += tail[i].time - tail[i-1].time;
+  return sum / (tail.length - 1);
+}
+
+/**
+ * Calculate fractional SIR score from a real ranked list.
+ * Returns null if no list exists for that key (fall back to pctRank).
+ *
+ * @param {number} time  - seconds
+ * @param {string} key   - "CONF|eventkey|GENDER"
+ * @returns {{ score, rankLabel, loSwim, hiSwim, pct, inList } | null}
+ */
+function fractionalSIR(time, key) {
+  const swims = REAL_LISTS[key];
+  if (!swims || !swims.length) return null;
+
+  const anchors = _buildAnchors(swims);
+  const first   = anchors[0];
+  const last    = anchors[anchors.length - 1];
+
+  // Faster than or equal to #1
+  if (time <= first.time) {
+    const sw = swims.find(s => s.time === first.time);
+    return {
+      score:     first.score,
+      rankLabel: `#${first.score}`,
+      loSwim:    sw || null,
+      hiSwim:    null,
+      pct:       0,
+      inList:    true,
+    };
+  }
+
+  // Within the list — find the bracketing anchors
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const lo = anchors[i], hi = anchors[i + 1];
+    if (time >= lo.time && time <= hi.time) {
+      const gap   = hi.time - lo.time;
+      const pct   = gap === 0 ? 0 : (time - lo.time) / gap;
+      const score = lo.score + pct * (hi.score - lo.score);
+      return {
+        score:     Math.round(score * 1000) / 1000,
+        rankLabel: pct === 0 ? `#${lo.score}` : `~#${score.toFixed(2)}`,
+        loSwim:    swims.find(s => s.time === lo.time) || null,
+        hiSwim:    swims.find(s => s.time === hi.time) || null,
+        pct:       Math.round(pct * 10000) / 10000,
+        inList:    true,
+      };
+    }
+  }
+
+  // Beyond the list — extrapolate using average tail gap
+  const gap       = _tailGap(anchors);
+  const overflow  = time - last.time;
+  const score     = last.score + overflow / gap;
+  return {
+    score:     Math.round(score * 1000) / 1000,
+    rankLabel: `~#${score.toFixed(1)} (beyond top ${last.score})`,
+    loSwim:    swims.find(s => s.time === last.time) || null,
+    hiSwim:    null,
+    pct:       0,
+    inList:    false,
+  };
+}
+
+/**
+ * Unified score function: use real fractional engine if available,
+ * else fall back to percentile curve. Returns {score, source}.
+ * source = 'real' | 'estimated'
+ */
+function getScore(time, conf, eventKey, gender) {
+  const key    = `${conf}|${eventKey}|${gender}`;
+  const real   = fractionalSIR(time, key);
+  if (real) return { ...real, source: 'real' };
+
+  // Percentile fallback — only used when no real list exists
+  const d = CONF_DATA[gender]?.[eventKey]?.[conf];
+  if (!d) return null;
+  const rank  = pctRank(time, d);
+  const score = parseFloat(sirScore(rank, d.size));
+  return {
+    score,
+    rankLabel:  `#${rank}`,
+    loSwim:     null,
+    hiSwim:     null,
+    pct:        0,
+    inList:     rank <= d.size,
+    source:     'estimated',
+    rank,
+    size:       d.size,
+  };
+}
+
+// ── Legacy helpers (still used by transfer/coach fallbacks) ────
 function pctRank(time, d) {
   const s = d.size;
   if (time <= d.p10) return Math.max(1, Math.round(s * 0.05 * (time / d.p10)));
@@ -1797,11 +1980,9 @@ function pctRank(time, d) {
   if (time <= d.p90) return Math.round(s * (0.75 + 0.15 * (time - d.p75) / (d.p90 - d.p75)));
   return Math.min(s, Math.round(s * (0.90 + 0.10 * Math.min(1, (time - d.p90) / (d.p90 * 0.04)))));
 }
-
 function sirScore(rank, size) {
   return (1 + (rank - 1) / Math.max(size - 1, 1) * 4).toFixed(3);
 }
-
 function getTier(rank, size) {
   const p = rank / size;
   if (p <= 0.05) return ['tier-dominant','Dominant'];
@@ -1810,13 +1991,12 @@ function getTier(rank, size) {
   if (p <= 0.70) return ['tier-average','Average'];
   return ['tier-below','Below avg'];
 }
-
 function barColor(rank, total) {
   const p = rank / total;
-  if (p <= 0.15) return '#00C9FF';
-  if (p <= 0.35) return '#22D67A';
-  if (p <= 0.60) return '#F5A623';
-  return '#8FA3BF';
+  if (p <= 0.15) return '#00D4FF';
+  if (p <= 0.35) return '#1DFFA0';
+  if (p <= 0.60) return '#FFAA00';
+  return '#7A95B5';
 }
 
 // ─── Tab switching ─────────────────────────────────────────────
@@ -1841,64 +2021,142 @@ function runRecruit() {
     return;
   }
 
-  const confs = Object.keys(CONF_DATA[g]["100free"]);
+  // Gather all known conferences from both real lists and benchmark fallback
+  const confSet = new Set();
+  Object.keys(REAL_LISTS).forEach(k => { const [c] = k.split('|'); confSet.add(c); });
+  if (CONF_DATA[g]) {
+    Object.values(CONF_DATA[g]).forEach(evObj => Object.keys(evObj).forEach(c => confSet.add(c)));
+  }
+  const confs = [...confSet];
+
+  const eventInputs = [
+    { key: '50free',  time: t50,  label: '50 free'  },
+    { key: '100free', time: t100, label: '100 free' },
+    { key: '200free', time: t200, label: '200 free' },
+  ];
+
   const results = [];
 
   for (const conf of confs) {
     const evResults = [];
-    let sumPct = 0, count = 0;
-    const inputs = [
-      { key:'50free',  time: t50,  label:'50 free',  w:0.2833 },
-      { key:'100free', time: t100, label:'100 free', w:0.2833 },
-      { key:'200free', time: t200, label:'200 free', w:0.2833 },
-    ];
-    for (const ev of inputs) {
+    let scoreSum = 0, scoreCount = 0;
+
+    for (const ev of eventInputs) {
       if (!ev.time) continue;
-      const d = CONF_DATA[g][ev.key][conf];
-      const r = pctRank(ev.time, d);
-      evResults.push({ label: ev.label, rank: r, size: d.size });
-      sumPct += r / d.size;
-      count++;
+      const result = getScore(ev.time, conf, ev.key, g);
+      if (!result) continue;
+
+      // Normalise to a 0–1 percentile rank for cross-conference comparison
+      // Real: score is fractional rank (1 = best, N = worst), size = list length
+      // Estimated: result.rank / result.size
+      let pctRankVal;
+      if (result.source === 'real') {
+        const listSize = REAL_LISTS[`${conf}|${ev.key}|${g}`]?.length || 50;
+        pctRankVal = (result.score - 1) / Math.max(listSize - 1, 1);
+      } else {
+        pctRankVal = (result.rank - 1) / Math.max(result.size - 1, 1);
+      }
+
+      evResults.push({
+        label:  ev.label,
+        score:  result.score,
+        rankLabel: result.rankLabel,
+        source: result.source,
+        loSwim: result.loSwim,
+        hiSwim: result.hiSwim,
+        pct:    result.pct,
+        inList: result.inList,
+        pctRankVal,
+      });
+      scoreSum  += pctRankVal;
+      scoreCount++;
     }
-    if (!count) continue;
-    const avgPct = sumPct / count;
-    const refSize = CONF_DATA[g]["100free"][conf].size;
-    const approxRank = Math.round(avgPct * refSize);
-    const sir = sirScore(approxRank, refSize);
-    results.push({ conf, approxRank, sir, evResults, size: refSize });
+
+    if (!scoreCount) continue;
+
+    const avgPct = scoreSum / scoreCount;
+    // Display rank: map avgPct back to a rank out of the reference list size
+    const refSize = REAL_LISTS[`${conf}|100free|${g}`]?.length
+                  || CONF_DATA[g]?.['100free']?.[conf]?.size
+                  || 50;
+    const displayRank = Math.max(1, Math.round(1 + avgPct * (refSize - 1)));
+    const sirDisp     = (1 + avgPct * 4).toFixed(3);
+    const hasReal     = evResults.some(e => e.source === 'real');
+
+    results.push({ conf, displayRank, sir: sirDisp, evResults, size: refSize, hasReal });
   }
 
-  results.sort((a, b) => a.approxRank - b.approxRank);
+  results.sort((a, b) => a.displayRank - b.displayRank);
   const best = results[0];
 
   let html = '<div style="margin-bottom:1.1rem">';
   html += '<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Impact rank by conference</div>';
   html += '<div class="conf-grid">';
+
   for (const r of results) {
-    const [tc, tl] = getTier(r.approxRank, r.size);
-    const isTop = r.conf === best.conf;
+    const [tc, tl] = getTier(r.displayRank, r.size);
+    const isTop    = r.conf === best.conf;
+    const srcBadge = r.hasReal
+      ? `<div style="font-size:9px;color:var(--cyan);margin-top:3px;letter-spacing:.05em">● REAL DATA</div>`
+      : `<div style="font-size:9px;color:var(--slate);margin-top:3px;letter-spacing:.05em">○ estimated</div>`;
     html += `<div class="conf-card${isTop ? ' top-conf' : ''}">
       <div class="conf-card-name">${r.conf}</div>
-      <div class="conf-card-rank" style="color:${isTop ? 'var(--cyan)' : 'var(--white)'}">#${r.approxRank}</div>
+      <div class="conf-card-rank" style="color:${isTop ? 'var(--cyan)' : 'var(--white)'}">#${r.displayRank}</div>
       <div class="conf-card-of">of ${r.size}</div>
       <div class="conf-card-tier ${tc}">${tl}</div>
       <div class="conf-card-sir">SIR ${r.sir}</div>
+      ${srcBadge}
     </div>`;
   }
   html += '</div></div>';
 
+  // Breakdown for best conference — show fractional detail if real data
   if (best && best.evResults.length) {
     html += `<div class="breakdown-box">
-      <div class="breakdown-title">Event breakdown — ${best.conf} (your best fit)</div>`;
+      <div class="breakdown-title">Event breakdown — ${best.conf}${best.hasReal ? ' <span style="color:var(--cyan);font-size:10px">● real data</span>' : ''}</div>`;
+
     for (const ev of best.evResults) {
-      const barPct = Math.round((1 - (ev.rank - 1) / ev.size) * 100);
-      html += `<div class="breakdown-row">
-        <span class="breakdown-label">${ev.label}</span>
-        <div style="flex:1;margin:0 12px">
-          <div class="bar-mini"><div class="bar-mini-fill" style="width:${barPct}%"></div></div>
-        </div>
-        <span class="breakdown-val">#${ev.rank} <span style="color:var(--slate);font-weight:400">of ${ev.size}</span></span>
-      </div>`;
+      const barPct = Math.round((1 - ev.pctRankVal) * 100);
+
+      if (ev.source === 'real' && ev.loSwim && ev.hiSwim && ev.pct > 0) {
+        // Fractional detail row
+        html += `<div class="breakdown-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+          <div style="display:flex;justify-content:space-between;width:100%">
+            <span class="breakdown-label">${ev.label}</span>
+            <span class="breakdown-val" style="color:var(--cyan)">${ev.score.toFixed(3)}
+              <span style="color:var(--slate);font-weight:400;font-size:11px">(${ev.rankLabel})</span>
+            </span>
+          </div>
+          <div style="font-size:11px;color:var(--slate);width:100%">
+            Between <strong style="color:var(--white)">#${ev.loSwim.rank} ${ev.loSwim.name}</strong> (${ev.loSwim.time.toFixed(2)}s)
+            and <strong style="color:var(--white)">#${ev.hiSwim.rank} ${ev.hiSwim.name}</strong> (${ev.hiSwim.time.toFixed(2)}s)
+            — ${(ev.pct * 100).toFixed(1)}% through that gap
+          </div>
+          <div style="width:100%">
+            <div class="bar-mini">
+              <div class="bar-mini-fill" style="width:${barPct}%;background:var(--cyan)"></div>
+            </div>
+          </div>
+        </div>`;
+      } else if (ev.source === 'real' && ev.loSwim && ev.pct === 0) {
+        // Exact match or #1
+        html += `<div class="breakdown-row">
+          <span class="breakdown-label">${ev.label}</span>
+          <div style="flex:1;margin:0 12px"><div class="bar-mini"><div class="bar-mini-fill" style="width:${barPct}%"></div></div></div>
+          <span class="breakdown-val" style="color:var(--cyan)">${ev.rankLabel}
+            <span style="color:var(--slate);font-weight:400;font-size:11px">— ${ev.loSwim.name}</span>
+          </span>
+        </div>`;
+      } else {
+        // Estimated fallback
+        html += `<div class="breakdown-row">
+          <span class="breakdown-label">${ev.label}</span>
+          <div style="flex:1;margin:0 12px"><div class="bar-mini"><div class="bar-mini-fill" style="width:${barPct}%"></div></div></div>
+          <span class="breakdown-val">${ev.rankLabel}
+            <span style="color:var(--slate);font-weight:400;font-size:10px"> est.</span>
+          </span>
+        </div>`;
+      }
     }
     html += '</div>';
   }
@@ -2000,20 +2258,27 @@ function runCoach() {
 
   swimmers.forEach((s, i) => {
     const badgeClass = i === 0 ? 'badge-gold' : i < 3 ? 'badge-silver' : 'badge-other';
-    const d = CONF_DATA[g][evKey][s.conf];
-    let sir = '—';
-    if (d) { const r = pctRank(s[evKey], d); sir = sirScore(r, d.size); }
+    const result = getScore(s[evKey], s.conf, evKey, g);
+    let sirCell = '—';
+    if (result) {
+      const color = result.source === 'real' ? 'var(--cyan)' : 'var(--slate)';
+      const tag   = result.source === 'real'
+        ? '<span style="font-size:9px;color:var(--cyan);margin-left:4px">●</span>'
+        : '<span style="font-size:9px;color:var(--slate);margin-left:4px">○</span>';
+      sirCell = `<span style="font-family:\'Space Grotesk\',sans-serif;color:${color}">${result.score.toFixed(3)}</span>${tag}`;
+    }
     html += `<tr>
       <td><span class="rank-badge ${badgeClass}">${i+1}</span></td>
       <td style="font-weight:500">${s.name}</td>
       <td style="color:var(--slate)">${s.team}</td>
       <td><span class="tag tag-slate" style="font-size:10px">${s.conf}</span></td>
       <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${s[evKey]}</td>
-      <td style="font-family:'Space Grotesk',sans-serif;color:var(--cyan)">${sir}</td>
+      <td>${sirCell}</td>
     </tr>`;
   });
 
   html += '</tbody></table></div>';
+  html += '<div style="font-size:11px;color:var(--slate);margin-top:10px">● real data &nbsp; ○ estimated from benchmark curve</div>';
   recordFreeSearch();
   el.innerHTML = html;
 }
@@ -2275,23 +2540,43 @@ function commitCSVImport() {
   const season = document.getElementById('import-season').value.trim();
   if (!conf) { alert('Please enter a conference name.'); return; }
 
-  const bench = computePercentilesFromList(pendingCSVData);
+  // ── Store the full ranked list, NOT percentile summaries ──────
+  // This is what feeds the fractional engine directly.
+  const listKey = `${conf}|${event}|${gender}`;
+  REAL_LISTS[listKey] = pendingCSVData.map(r => ({
+    rank: r.rank,
+    name: r.name,
+    meet: r.meet || '',
+    time: r.time,
+  }));
 
-  // Inject into live CONF_DATA
+  // Persist to localStorage so it survives page reload
+  const storedLists = JSON.parse(localStorage.getItem('sir_real_lists') || '{}');
+  storedLists[listKey] = REAL_LISTS[listKey];
+  localStorage.setItem('sir_real_lists', JSON.stringify(storedLists));
+
+  // Also compute and store percentile benchmarks as a fallback
+  // (used only if the fractional engine ever needs a size reference)
+  const bench = computePercentilesFromList(pendingCSVData);
   if (!CONF_DATA[gender]) CONF_DATA[gender] = {};
   if (!CONF_DATA[gender][event]) CONF_DATA[gender][event] = {};
   CONF_DATA[gender][event][conf] = bench;
 
-  // Persist metadata
+  // Persist metadata for the datasets panel
   const datasets = getImportedDatasets();
   const existing = datasets.findIndex(d =>
     d.gender === gender && d.event === event && d.conf === conf && d.season === season);
-  const entry = { gender, event, conf, season, ...bench,
-    importedAt: new Date().toLocaleString(), rows: pendingCSVData.length };
+  const entry = {
+    gender, event, conf, season, ...bench,
+    importedAt: new Date().toLocaleString(),
+    rows: pendingCSVData.length,
+    hasRealList: true,
+    bestSwim: pendingCSVData[0] ? `${pendingCSVData[0].name} ${pendingCSVData[0].time}s` : '',
+  };
   if (existing >= 0) datasets[existing] = entry; else datasets.push(entry);
   saveImportedDatasets(datasets);
 
-  // Also persist actual benchmark data for page reloads
+  // Also persist benchmark overrides for fallback coverage
   const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
   if (!stored[gender]) stored[gender] = {};
   if (!stored[gender][event]) stored[gender][event] = {};
@@ -2300,7 +2585,7 @@ function commitCSVImport() {
 
   const res = document.getElementById('import-result');
   res.className = 'import-result success';
-  res.textContent = `✓ Imported ${pendingCSVData.length} swimmers for ${conf} ${gender} ${event} (${season}). Benchmarks live.`;
+  res.textContent = `✓ Imported ${pendingCSVData.length} real swims for ${conf} ${gender} ${event} (${season}). Fractional scoring now active for this list.`;
   pendingCSVData = null;
   document.getElementById('commit-btn').disabled = true;
   renderDatasets();
@@ -2317,17 +2602,22 @@ function renderDatasets() {
     <div style="display:flex;justify-content:space-between;align-items:center;
       padding:10px 0;border-bottom:1px solid rgba(240,244,255,0.06)">
       <div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
           ${d.conf} ${d.gender} — ${d.event}
-          <span class="tag tag-cyan" style="margin-left:6px;font-size:10px">${d.season}</span>
+          <span class="tag tag-cyan" style="font-size:10px">${d.season}</span>
+          ${d.hasRealList
+            ? '<span style="font-size:10px;background:rgba(0,212,255,0.12);color:var(--cyan);padding:2px 7px;border-radius:4px;letter-spacing:.04em">● REAL LIST</span>'
+            : '<span style="font-size:10px;color:var(--slate)">○ benchmarks only</span>'}
         </div>
-        <div style="font-size:11px;color:var(--slate);margin-top:2px">
-          n=${d.size} · p50=${d.p50}s · imported ${d.importedAt}
+        <div style="font-size:11px;color:var(--slate);margin-top:3px">
+          ${d.rows} swims · median ${d.p50}s
+          ${d.bestSwim ? '· #1: ' + d.bestSwim : ''}
+          · imported ${d.importedAt}
         </div>
       </div>
       <button onclick="deleteDataset('${d.gender}','${d.event}','${d.conf}','${d.season}')"
         style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);
-        color:var(--red);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer">
+        color:var(--red);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;flex-shrink:0">
         Remove
       </button>
     </div>`).join('');
@@ -2337,11 +2627,22 @@ function deleteDataset(gender, event, conf, season) {
   let datasets = getImportedDatasets().filter(d =>
     !(d.gender === gender && d.event === event && d.conf === conf && d.season === season));
   saveImportedDatasets(datasets);
+
   // Remove from live CONF_DATA
   if (CONF_DATA[gender]?.[event]?.[conf]) delete CONF_DATA[gender][event][conf];
   const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
   if (stored[gender]?.[event]?.[conf]) delete stored[gender][event][conf];
   localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
+
+  // Remove from real lists (but never delete seeded data)
+  const listKey = `${conf}|${event}|${gender}`;
+  const storedLists = JSON.parse(localStorage.getItem('sir_real_lists') || '{}');
+  delete storedLists[listKey];
+  localStorage.setItem('sir_real_lists', JSON.stringify(storedLists));
+  // Only remove from memory if it wasn't seeded at startup
+  // (seeded lists are defined in the script, not from localStorage)
+  if (storedLists[listKey] === undefined) delete REAL_LISTS[listKey];
+
   renderDatasets();
 }
 
@@ -2404,6 +2705,7 @@ function removeUser(id) {
 
 // ── Restore persisted overrides on page load ───────────────────
 (function() {
+  // Restore benchmark fallback curves
   const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
   for (const g of Object.keys(stored)) {
     if (!CONF_DATA[g]) CONF_DATA[g] = {};
@@ -2412,6 +2714,16 @@ function removeUser(id) {
       Object.assign(CONF_DATA[g][ev], stored[g][ev]);
     }
   }
+
+  // Restore full ranked lists for fractional engine
+  const storedLists = JSON.parse(localStorage.getItem('sir_real_lists') || '{}');
+  for (const key of Object.keys(storedLists)) {
+    // Don't overwrite seeded data (e.g. SEC|100free|M already loaded above)
+    if (!REAL_LISTS[key]) {
+      REAL_LISTS[key] = storedLists[key];
+    }
+  }
+
   // Restore session if still stored
   if (SIR_AUTH) {
     updateNavAuth();
