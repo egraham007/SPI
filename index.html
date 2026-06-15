@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIR — Swimming Impact Rank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── Tokens ───────────────────────────────────────────────── */
+:root {
+  --navy:    #050D1A;
+  --navy2:   #0A1628;
+  --steel:   #111E33;
+  --mid:     #1E3556;
+  --slate:   #7A95B5;
+  --white:   #EEF3FF;
+  --cyan:    #00D4FF;
+  --cyan-dim:#006880;
+  --cyan-glow: 0 0 30px rgba(0,212,255,0.35), 0 0 60px rgba(0,212,255,0.15);
+  --amber:   #FFAA00;
+  --green:   #1DFFA0;
+  --red:     #FF4F4F;
+  --purple:  #A855F7;
+  --radius:  8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* ─── Auth Modal ───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(5,12,24,0.82);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.18);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 480px;
+  padding: 2rem;
+  position: relative;
+  transform: translateY(16px);
+  transition: transform 0.25s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; color: var(--slate);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--white); }
+.modal-logo {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 20px; margin-bottom: 0.25rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-logo span {
+  background: var(--cyan); color: var(--navy);
+  font-size: 10px; font-weight: 700; padding: 2px 6px;
+  border-radius: 4px;
+}
+.modal-subtitle { font-size: 13px; color: var(--slate); margin-bottom: 1.75rem; }
+
+/* Role picker */
+.role-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+.role-card {
+  background: rgba(10,22,40,0.6);
+  border: 2px solid rgba(240,244,255,0.1);
+  border-radius: var(--radius); padding: 1rem 0.75rem;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.role-card:hover { border-color: rgba(0,201,255,0.4); }
+.role-card.selected { border-color: var(--cyan); background: rgba(0,201,255,0.08); }
+.role-icon { font-size: 24px; margin-bottom: 6px; }
+.role-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.role-price {
+  font-size: 11px; color: var(--slate); line-height: 1.4;
+}
+.role-price strong { color: var(--cyan); font-weight: 600; }
+
+/* Auth form steps */
+.auth-step { display: none; }
+.auth-step.active { display: block; }
+.auth-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 1rem 0; color: var(--slate); font-size: 12px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(240,244,255,0.1);
+}
+.auth-toggle {
+  text-align: center; font-size: 13px; color: var(--slate); margin-top: 1rem;
+}
+.auth-toggle a { color: var(--cyan); cursor: pointer; text-decoration: underline; }
+.auth-error {
+  background: rgba(255,92,92,0.12); border: 1px solid rgba(255,92,92,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 13px; color: var(--red); margin-bottom: 1rem; display: none;
+}
+.auth-error.show { display: block; }
+.auth-info {
+  background: rgba(0,201,255,0.08); border: 1px solid rgba(0,201,255,0.2);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 13px; color: var(--cyan); margin-bottom: 1rem;
+}
+
+/* Nav auth state */
+.nav-user {
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-user-badge {
+  font-size: 12px; font-weight: 600; color: var(--slate);
+  font-family: 'Space Grotesk', sans-serif;
+}
+.nav-user-role {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.role-tag-swimmer  { background: rgba(34,214,122,0.15); color: var(--green); }
+.role-tag-coach    { background: rgba(245,166,35,0.15); color: var(--amber); }
+.role-tag-admin    { background: rgba(0,201,255,0.15); color: var(--cyan); }
+.btn-signout {
+  background: none; border: 1px solid rgba(240,244,255,0.15);
+  color: var(--slate); font-size: 12px; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600; padding: 5px 12px; border-radius: var(--radius);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-signout:hover { border-color: rgba(240,244,255,0.4); color: var(--white); }
+
+/* ─── Admin Panel ──────────────────────────────────────────── */
+.admin-panel {
+  background: var(--navy);
+  border-top: 2px solid rgba(0,201,255,0.15);
+  display: none;
+}
+.admin-panel.visible { display: block; }
+.admin-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 1.75rem;
+}
+.admin-badge {
+  background: rgba(0,201,255,0.15); border: 1px solid rgba(0,201,255,0.3);
+  color: var(--cyan); font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 3px 10px; border-radius: 4px;
+}
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.admin-card {
+  background: var(--steel); border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+}
+.admin-card h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700;
+  margin-bottom: 0.35rem; display: flex; align-items: center; gap: 8px;
+}
+.admin-card .card-desc { font-size: 13px; color: var(--slate); margin-bottom: 1.25rem; }
+
+/* CSV drop zone */
+.drop-zone {
+  border: 2px dashed rgba(0,201,255,0.25);
+  border-radius: var(--radius); padding: 2rem 1rem;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+  background: rgba(10,22,40,0.4);
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--cyan); background: rgba(0,201,255,0.06);
+}
+.drop-zone-icon { font-size: 28px; margin-bottom: 8px; }
+.drop-zone-text { font-size: 13px; color: var(--slate); }
+.drop-zone-text strong { color: var(--white); }
+#csv-file-input { display: none; }
+
+.import-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0; }
+.csv-preview {
+  margin-top: 1rem; background: rgba(10,22,40,0.6);
+  border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius); padding: 1rem;
+  max-height: 200px; overflow-y: auto;
+  font-size: 12px; font-family: monospace; color: var(--slate);
+  display: none;
+}
+.csv-preview.show { display: block; }
+.import-result {
+  margin-top: 0.75rem; padding: 10px 14px;
+  border-radius: var(--radius); font-size: 13px; display: none;
+}
+.import-result.success {
+  display: block;
+  background: rgba(34,214,122,0.1); border: 1px solid rgba(34,214,122,0.3);
+  color: var(--green);
+}
+.import-result.error {
+  display: block;
+  background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.3);
+  color: var(--red);
+}
+
+/* User management table */
+.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.user-table th {
+  font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 6px 10px; border-bottom: 1px solid rgba(240,244,255,0.1); text-align: left;
+}
+.user-table td { padding: 8px 10px; border-bottom: 1px solid rgba(240,244,255,0.05); }
+.user-table tr:last-child td { border-bottom: none; }
+.admin-full { grid-column: 1 / -1; }
+
+/* Paywall notice banner */
+.paywall-notice {
+  background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.25);
+  border-radius: var(--radius); padding: 12px 16px; margin-top: 1rem;
+  font-size: 13px; color: var(--amber); display: none;
+}
+.paywall-notice.show { display: flex; align-items: center; gap: 10px; }
+
+/* ─── Nav ──────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  padding: 0 3rem; height: 62px;
+  background: rgba(5,13,26,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0,212,255,0.1);
+}
+nav::after {
+  content: '';
+  position: absolute; bottom: 0; left: 5%; right: 5%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+  pointer-events: none;
+}
+#nav-auth-area { display: flex; justify-content: flex-end; }
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 18px; color: var(--white); text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.nav-logo-badge {
+  background: var(--cyan); color: var(--navy);
+  font-size: 11px; font-weight: 800; padding: 2px 8px;
+  border-radius: 4px; letter-spacing: 0.08em;
+  font-family: 'Syne', sans-serif;
+  box-shadow: 0 0 12px rgba(0,212,255,0.5);
+}
+.nav-links { display: flex; gap: 1.5rem; list-style: none; justify-content: center; }
+.nav-links a {
+  color: var(--slate); font-size: 14px; text-decoration: none;
+  transition: color 0.2s; font-weight: 500;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--cyan); color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 13px; padding: 8px 20px; border-radius: var(--radius);
+  text-decoration: none; transition: all 0.2s;
+  box-shadow: 0 0 16px rgba(0,212,255,0.3);
+}
+.nav-cta:hover { opacity: 0.9; box-shadow: 0 0 24px rgba(0,212,255,0.5); }
+
+/* ─── Hero ─────────────────────────────────────────────────── */
+.hero {
+  position: relative; overflow: hidden;
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  padding: 100px 2rem 4rem;
+  background: var(--navy);
+}
+/* Deep grid */
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black 30%, transparent 80%);
+  pointer-events: none; z-index: 0;
+}
+/* Main glow orb */
+.hero::after {
+  content: '';
+  position: absolute; top: -15%; left: 50%; transform: translateX(-50%);
+  width: 1100px; height: 700px;
+  background: radial-gradient(ellipse,
+    rgba(0,212,255,0.13) 0%,
+    rgba(120,100,255,0.06) 40%,
+    transparent 68%);
+  pointer-events: none; z-index: 0;
+  animation: orb-drift 10s ease-in-out infinite alternate;
+}
+@keyframes orb-drift {
+  from { transform: translateX(-52%) translateY(0) scale(1); }
+  to   { transform: translateX(-48%) translateY(24px) scale(1.04); }
+}
+/* Bottom fade */
+.hero-fade {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 260px;
+  background: linear-gradient(to bottom, transparent, var(--navy));
+  pointer-events: none; z-index: 1;
+}
+/* Accent orbs */
+.hero-orb-left {
+  position: absolute; top: 30%; left: -10%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+  animation: orb-drift 13s ease-in-out infinite alternate-reverse;
+}
+.hero-orb-right {
+  position: absolute; top: 20%; right: -10%;
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(0,212,255,0.07) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+  animation: orb-drift 9s ease-in-out infinite alternate;
+}
+.hero-lanes {
+  position: absolute; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+.hero-lanes svg { width: 100%; height: 100%; }
+.hero-gradient {
+  position: absolute; inset: 0; z-index: 1;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%,
+    rgba(0,212,255,0.04) 0%, transparent 70%);
+}
+.hero-lanes { display: none; }
+.hero-gradient { display: none; }
+.hero-content { position: relative; z-index: 2; max-width: 860px; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.22);
+  color: var(--cyan); font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  padding: 7px 18px; border-radius: 20px; margin-bottom: 1.75rem;
+  text-transform: uppercase;
+  box-shadow: 0 0 24px rgba(0,212,255,0.1), inset 0 1px 0 rgba(0,212,255,0.15);
+}
+.hero-eyebrow::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,212,255,0.5);
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 800; line-height: 0.93;
+  letter-spacing: -0.04em;
+  margin-bottom: 1.5rem;
+}
+.hero-title em {
+  font-style: normal;
+  background: linear-gradient(120deg, var(--cyan) 0%, #8B8FFF 55%, var(--cyan) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: block; padding-top: 0.1em;
+  animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 0% center; }
+  to   { background-position: 200% center; }
+}
+.hero-sub {
+  font-size: clamp(16px, 2vw, 19px);
+  color: var(--slate); max-width: 580px; margin: 0 auto 2.75rem;
+  line-height: 1.7;
+}
+.hero-sub strong { color: var(--white); font-weight: 500; }
+.hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--cyan) 0%, #00a8cc 100%);
+  color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 15px; padding: 15px 32px; border-radius: var(--radius);
+  text-decoration: none; border: none; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 0 0 rgba(0,212,255,0.4);
+  letter-spacing: 0.01em; position: relative; overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(rgba(255,255,255,0.15), transparent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,212,255,0.5), 0 0 0 1px rgba(0,212,255,0.3);
+}
+.btn-primary:hover::after { opacity: 1; }
+.btn-secondary {
+  background: rgba(255,255,255,0.04); color: var(--white);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: 15px; padding: 15px 32px; border-radius: var(--radius);
+  text-decoration: none; border: 1px solid rgba(240,244,255,0.15);
+  cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  backdrop-filter: blur(8px);
+}
+.btn-secondary:hover {
+  border-color: rgba(0,212,255,0.45);
+  background: rgba(0,212,255,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,212,255,0.1);
+}
+
+.social-proof {
+  position: relative; z-index: 2;
+  margin-top: 3.5rem;
+  display: flex; align-items: center; gap: 2.5rem; justify-content: center;
+  flex-wrap: wrap;
+}
+.proof-stat { text-align: center; }
+.proof-num {
+  font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800;
+  color: var(--white); line-height: 1;
+  letter-spacing: -0.03em;
+}
+.proof-num span { color: var(--cyan); }
+.proof-label {
+  font-size: 12px; color: var(--slate); margin-top: 4px; font-weight: 500;
+}
+.proof-div {
+  width: 1px; height: 40px; background: rgba(240,244,255,0.1);
+}
+
+/* ─── Hero context table ───────────────────────────────────── */
+.hero-context {
+  position: relative; z-index: 2;
+  margin-top: 4rem; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+}
+.ctx-card {
+  background: rgba(17,30,51,0.7);
+  border: 1px solid rgba(0,212,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.1rem 1.4rem; min-width: 120px;
+  text-align: center; backdrop-filter: blur(16px);
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  position: relative; overflow: hidden;
+}
+.ctx-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,212,255,0.06) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.3s;
+}
+.ctx-card:hover {
+  border-color: rgba(0,212,255,0.45);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0,212,255,0.15), 0 0 0 1px rgba(0,212,255,0.1);
+}
+.ctx-card:hover::before { opacity: 1; }
+.ctx-conf {
+  font-size: 10px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.ctx-rank {
+  font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
+  line-height: 1; margin-bottom: 6px; letter-spacing: -0.01em;
+}
+.ctx-time {
+  font-size: 11px; color: var(--slate); font-family: 'Inter', sans-serif; letter-spacing: 0.01em;
+}
+.rank-dominant { color: var(--cyan); text-shadow: 0 0 20px rgba(0,212,255,0.6); }
+.rank-elite    { color: var(--green); text-shadow: 0 0 20px rgba(29,255,160,0.4); }
+.rank-average  { color: var(--amber); }
+.rank-below    { color: var(--slate); }
+
+/* ─── Section wrapper ──────────────────────────────────────── */
+section { padding: 5rem 4vw; }
+.container { width: 100%; max-width: none; padding: 0; }
+strong {
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  color: var(--white);
+  letter-spacing: 0;
+}
+.section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--cyan);
+  letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.75rem;
+}
+.section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(26px, 3.5vw, 40px); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+.section-sub {
+  color: var(--slate); font-size: 16px; max-width: 560px; line-height: 1.65;
+}
+
+/* ─── Philosophy strip ─────────────────────────────────────── */
+.philosophy {
+  background: linear-gradient(180deg, var(--navy) 0%, #0C1830 50%, var(--navy) 100%);
+  border-top: 1px solid rgba(0,212,255,0.08);
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+  position: relative; overflow: hidden;
+}
+.philosophy::before {
+  content: '';
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(0,212,255,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.philosophy-inner {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; max-width: 80%; margin: 0 auto; gap: 2.5rem;
+  position: relative; z-index: 1;
+}
+.philosophy-inner > div { width: 100%; }
+.philosophy-quote { text-align: center; }
+.compare-table-wrap { max-width: 640px; margin: 0 auto; width: 100%; }
+.philosophy-quote {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 3.5vw, 36px); font-weight: 800;
+  line-height: 1.2; letter-spacing: -0.02em;
+}
+.philosophy-quote em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--cyan) 0%, #7B8FFF 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.compare-table { width: 100%; border-collapse: collapse; }
+.compare-table th {
+  text-align: left; font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 8px 12px; border-bottom: 1px solid rgba(240,244,255,0.08);
+}
+.compare-table td {
+  padding: 11px 12px; font-size: 14px;
+  border-bottom: 1px solid rgba(240,244,255,0.05);
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:last-child td:first-child { color: var(--cyan); font-weight: 700; }
+.tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 4px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.tag-cyan   { background: rgba(0,212,255,0.12); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
+.tag-amber  { background: rgba(255,170,0,0.12); color: var(--amber); }
+.tag-green  { background: rgba(29,255,160,0.12); color: var(--green); }
+.tag-slate  { background: rgba(122,149,181,0.12); color: var(--slate); }
+
+/* ─── Mode selector ────────────────────────────────────────── */
+.modes-section { background: linear-gradient(180deg, var(--navy) 0%, #0A1525 100%); }
+.mode-tabs {
+  display: flex; gap: 4px;
+  background: rgba(30,53,86,0.5);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 4px;
+  margin-bottom: 2rem; width: fit-content;
+}
+.mode-tab {
+  padding: 10px 22px; border-radius: 10px; border: none;
+  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; font-weight: 600;
+  background: transparent; color: var(--slate);
+  transition: all 0.2s; white-space: nowrap;
+}
+.mode-tab.active {
+  background: var(--cyan); color: var(--navy);
+}
+.mode-tab:not(.active):hover { color: var(--white); }
+.mode-panel { display: none; }
+.mode-panel.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Tool layout ──────────────────────────────────────────── */
+.tool-layout {
+  display: grid; grid-template-columns: 380px 1fr;
+  gap: 1.5rem; align-items: start;
+}
+.tool-form {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+}
+.tool-form h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+.tool-form .form-desc { font-size: 13px; color: var(--slate); margin-bottom: 1.25rem; }
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block; font-size: 12px; font-weight: 600; color: var(--slate);
+  font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.field input, .field select {
+  width: 100%; background: var(--mid); border: 1px solid rgba(240,244,255,0.1);
+  border-radius: var(--radius); color: var(--white); font-size: 14px;
+  padding: 9px 12px; font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0,201,255,0.1);
+}
+.field input::placeholder { color: var(--slate); }
+.field select option { background: var(--steel); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Swim time inputs — green border when valid, red when malformed */
+input.swim-time { transition: border-color 0.2s, box-shadow 0.2s; }
+input.swim-time[style*="var(--green)"] {
+  box-shadow: 0 0 0 3px rgba(29,255,160,0.08);
+}
+input.swim-time[style*="var(--red)"] {
+  box-shadow: 0 0 0 3px rgba(255,79,79,0.1);
+}
+.calc-btn {
+  width: 100%; margin-top: 0.5rem;
+  background: var(--cyan); color: var(--navy);
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 14px; padding: 12px; border-radius: var(--radius);
+  border: none; cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+}
+.calc-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.calc-btn:active { transform: translateY(0); }
+
+/* ─── Results panel ────────────────────────────────────────── */
+.results-panel {
+  background: var(--steel);
+  border: 1px solid rgba(0,201,255,0.12);
+  border-radius: var(--radius-lg); padding: 1.5rem; min-height: 320px;
+}
+.results-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 260px; gap: 12px;
+  color: var(--slate); font-size: 14px; text-align: center;
+}
+.results-empty .empty-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(143,163,191,0.1);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+
+/* ─── Recruit results ──────────────────────────────────────── */
+.conf-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-bottom: 1.25rem;
+}
+.conf-card {
+  background: rgba(10,22,40,0.6); border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius-lg); padding: 1rem 1rem 0.85rem;
+  transition: border-color 0.2s;
+}
+.conf-card:hover { border-color: rgba(0,201,255,0.3); }
+.conf-card.top-conf { border-color: rgba(0,201,255,0.4); background: rgba(0,201,255,0.05); }
+.conf-card-name {
+  font-size: 10px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px;
+}
+.conf-card-rank {
+  font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
+  line-height: 1; margin-bottom: 2px;
+}
+.conf-card-of { font-size: 11px; color: var(--slate); margin-bottom: 6px; }
+.conf-card-tier {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em;
+}
+.conf-card-sir { font-size: 10px; color: var(--slate); margin-top: 4px; }
+.tier-dominant { background: rgba(0,201,255,0.15); color: var(--cyan); }
+.tier-elite    { background: rgba(34,214,122,0.15); color: var(--green); }
+.tier-competitive { background: rgba(245,166,35,0.15); color: var(--amber); }
+.tier-average  { background: rgba(143,163,191,0.15); color: var(--slate); }
+.tier-below    { background: rgba(255,92,92,0.1); color: var(--red); }
+
+.breakdown-box {
+  background: rgba(10,22,40,0.5); border: 1px solid rgba(240,244,255,0.06);
+  border-radius: var(--radius); padding: 1rem 1.1rem;
+}
+.breakdown-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid rgba(240,244,255,0.06);
+  font-size: 13px;
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-label { color: var(--slate); }
+.breakdown-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+.bar-mini {
+  height: 3px; background: rgba(240,244,255,0.1); border-radius: 2px;
+  margin-top: 3px; overflow: hidden;
+}
+.bar-mini-fill { height: 100%; border-radius: 2px; background: var(--cyan); transition: width 0.5s ease; }
+
+/* ─── Transfer results ─────────────────────────────────────── */
+.team-card {
+  background: rgba(10,22,40,0.6); border: 1px solid rgba(240,244,255,0.08);
+  border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.team-card:hover { border-color: rgba(0,201,255,0.25); }
+.team-card.best-fit { border-color: rgba(0,201,255,0.4); }
+.team-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.85rem;
+}
+.team-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600;
+}
+.team-conf { font-size: 12px; color: var(--slate); }
+.team-impact-badge {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border-radius: var(--radius); white-space: nowrap;
+}
+.event-bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-ev { font-size: 12px; color: var(--slate); width: 72px; flex-shrink: 0; }
+.bar-track {
+  flex: 1; height: 6px; background: rgba(240,244,255,0.08);
+  border-radius: 3px; overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s 0.1s ease; }
+.bar-rank-text {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600;
+  width: 56px; text-align: right;
+}
+
+/* ─── Coach table ──────────────────────────────────────────── */
+.coach-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.coach-table thead th {
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase;
+  text-align: left; padding: 8px 10px;
+  border-bottom: 1px solid rgba(240,244,255,0.1);
+}
+.coach-table tbody td {
+  padding: 10px 10px; border-bottom: 1px solid rgba(240,244,255,0.05);
+  color: var(--white);
+}
+.coach-table tbody tr:last-child td { border-bottom: none; }
+.coach-table tbody tr:hover td { background: rgba(0,201,255,0.04); }
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 22px; border-radius: 5px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+}
+.badge-gold   { background: rgba(245,166,35,0.2); color: var(--amber); }
+.badge-silver { background: rgba(143,163,191,0.15); color: var(--slate); }
+.badge-other  { background: rgba(240,244,255,0.07); color: var(--slate); }
+
+/* ─── How it works ─────────────────────────────────────────── */
+.how-section { background: var(--navy); text-align: center; position: relative; overflow: hidden; }
+.how-section::before {
+  content: '';
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 800px; height: 400px;
+  background: radial-gradient(ellipse, rgba(0,212,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.how-section .section-sub { margin: 0 auto; }
+.how-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem; margin-top: 2.5rem; max-width: 88%; margin-left: auto; margin-right: auto;
+}
+.how-card {
+  background: linear-gradient(145deg, rgba(17,30,51,0.9) 0%, rgba(10,22,40,0.7) 100%);
+  border: 1px solid rgba(0,212,255,0.1);
+  border-radius: var(--radius-lg); padding: 1.75rem 1.5rem;
+  position: relative; overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.how-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.how-card:hover {
+  border-color: rgba(0,212,255,0.28);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,212,255,0.08);
+}
+.how-card:hover::before { opacity: 1; }
+.how-number {
+  font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  color: var(--cyan); letter-spacing: 0.15em; margin-bottom: 1rem;
+  display: inline-block;
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+  padding: 3px 10px; border-radius: 20px;
+}
+.how-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700;
+  margin-bottom: 0.6rem; color: var(--white);
+}
+.how-desc { font-size: 14px; color: var(--slate); line-height: 1.65; }
+
+/* ─── Pricing section ──────────────────────────────────────── */
+.pricing-section {
+  background: var(--navy); position: relative; overflow: hidden; text-align: center;
+  border-top: 1px solid rgba(0,212,255,0.08);
+}
+.pricing-section::before {
+  content: '';
+  position: absolute; top: -30%; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 500px;
+  background: radial-gradient(ellipse, rgba(168,85,247,0.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem; margin-top: 3rem; max-width: 92%;
+  margin-left: auto; margin-right: auto; position: relative;
+}
+.pricing-card {
+  background: linear-gradient(160deg, rgba(17,30,51,0.95) 0%, rgba(11,20,38,0.9) 100%);
+  border: 1px solid rgba(240,244,255,0.1);
+  border-radius: var(--radius-xl); padding: 2rem 1.75rem;
+  position: relative; overflow: hidden;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  text-align: left;
+}
+.pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.pricing-card.featured {
+  border-color: rgba(0,212,255,0.4);
+  background: linear-gradient(160deg, rgba(0,212,255,0.06) 0%, rgba(17,30,51,0.95) 40%);
+  box-shadow: 0 0 0 1px rgba(0,212,255,0.15), 0 8px 40px rgba(0,212,255,0.1);
+}
+.pricing-card.featured:hover {
+  box-shadow: 0 0 0 1px rgba(0,212,255,0.3), 0 24px 60px rgba(0,212,255,0.2);
+}
+.pricing-featured-badge {
+  position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--cyan), #8B8FFF);
+  color: var(--navy); font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+  padding: 4px 16px; border-radius: 0 0 10px 10px; text-transform: uppercase;
+}
+.pricing-role-icon { font-size: 28px; margin-bottom: 1rem; }
+.pricing-role {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 13px; color: var(--slate); letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.pricing-price {
+  font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800;
+  color: var(--white); letter-spacing: -0.03em; line-height: 1;
+  margin-bottom: 0.25rem;
+}
+.pricing-price span { font-size: 18px; font-weight: 600; color: var(--slate); }
+.pricing-annual {
+  font-size: 12px; color: var(--slate); margin-bottom: 1.5rem;
+}
+.pricing-annual strong { color: var(--green); }
+.pricing-divider {
+  height: 1px; background: rgba(240,244,255,0.08); margin-bottom: 1.25rem;
+}
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.75rem; }
+.pricing-features li {
+  display: flex; align-items: flex-start; gap: 9px;
+  font-size: 13px; color: var(--slate); line-height: 1.4;
+}
+.pricing-features li::before {
+  content: '✓'; color: var(--cyan); font-weight: 700;
+  font-size: 13px; flex-shrink: 0; margin-top: 1px;
+}
+.pricing-features li.dim::before { content: '—'; color: rgba(122,149,181,0.4); }
+.pricing-features li.dim { color: rgba(122,149,181,0.5); }
+.pricing-beta-note {
+  text-align: center; margin-top: 2rem; font-size: 13px; color: var(--slate);
+  background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.15);
+  border-radius: var(--radius); padding: 12px 16px; max-width: 560px; margin: 2rem auto 0;
+}
+.pricing-beta-note strong { color: var(--cyan); }
+
+/* ─── Ticker strip ─────────────────────────────────────────── */
+.ticker-strip {
+  background: rgba(0,212,255,0.04);
+  border-top: 1px solid rgba(0,212,255,0.1);
+  border-bottom: 1px solid rgba(0,212,255,0.1);
+  padding: 12px 0; overflow: hidden; position: relative;
+}
+.ticker-track {
+  display: flex; gap: 0; width: max-content;
+  animation: ticker 28s linear infinite;
+}
+.ticker-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 2.5rem;
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--slate); white-space: nowrap;
+}
+.ticker-item .ti-rank { color: var(--cyan); }
+.ticker-item .ti-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(0,212,255,0.3); flex-shrink: 0;
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ─── Philosophy upgraded ──────────────────────────────────── */
+.philosophy {
+  background: var(--steel);
+  border-top: 1px solid rgba(0,212,255,0.08);
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+  position: relative; overflow: hidden;
+}
+.philosophy::before {
+  content: '';
+  position: absolute; bottom: -50%; right: -10%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 65%);
+  pointer-events: none;
+}
+.philosophy-quote {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(24px, 3.5vw, 36px); font-weight: 800;
+  line-height: 1.2; letter-spacing: -0.02em;
+}
+.philosophy-quote em {
+  font-style: normal; color: var(--cyan);
+  border-bottom: 3px solid rgba(0,212,255,0.4);
+  padding-bottom: 2px;
+}
+.compare-table { width: 100%; border-collapse: collapse; }
+.compare-table th {
+  text-align: left; font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 10px 14px; border-bottom: 1px solid rgba(240,244,255,0.1);
+}
+.compare-table td {
+  padding: 12px 14px; border-bottom: 1px solid rgba(240,244,255,0.06);
+  font-size: 14px; color: var(--slate);
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table tr:last-child td { background: rgba(0,212,255,0.04); }
+
+/* ─── CTA ──────────────────────────────────────────────────── */
+.cta-section {
+  text-align: center; padding: 7rem 2rem;
+  background: var(--navy); position: relative; overflow: hidden;
+}
+.cta-section::before {
+  content: '';
+  position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 500px;
+  background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+.cta-section .section-sub { margin: 0 auto 2.5rem; }
+.cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+/* ─── Footer ───────────────────────────────────────────────── */
+footer {
+  background: #060F1C;
+  border-top: 1px solid rgba(240,244,255,0.06);
+  padding: 2rem 4vw; text-align: center;
+}
+.footer-inner {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: 100%; margin: 0; flex-wrap: wrap; gap: 1rem;
+}
+.footer-logo {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px;
+  color: var(--white);
+}
+.footer-note { font-size: 13px; color: var(--slate); }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { font-size: 13px; color: var(--slate); text-decoration: none; }
+.footer-links a:hover { color: var(--white); }
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .philosophy-inner { flex-direction: column; }
+  .how-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+  .tool-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  nav { padding: 0 1.25rem; }
+  .nav-links { display: none; }
+  .hero { padding: 80px 4vw 3rem; }
+  section { padding: 3.5rem 4vw; }
+  .mode-tabs { flex-wrap: wrap; width: 100%; }
+  .mode-tab { flex: 1; text-align: center; padding: 9px 12px; font-size: 13px; }
+  .ctx-card { padding: 0.75rem; min-width: 90px; }
+  .ctx-rank { font-size: 22px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+}
+
+/* ─── Utility ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="nav-logo-badge">SIR</span>
+    Swimming Impact Rank
+  </a>
+  <ul class="nav-links">
+    <li><a href="#tool">Rankings</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#philosophy">Philosophy</a></li>
+  </ul>
+  <div id="nav-auth-area">
+    <a class="nav-cta" href="#" onclick="openAuthModal(event)">Sign In</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb-left"></div>
+  <div class="hero-orb-right"></div>
+  <div class="hero-lanes">
+    <svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <!-- Lane lines -->
+      <defs>
+        <pattern id="lane" x="0" y="0" width="175" height="1" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="900" stroke="rgba(0,201,255,0.07)" stroke-width="1" stroke-dasharray="18 14"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#lane)"/>
+      <!-- Horizontal lane ropes suggestion -->
+      <line x1="0" y1="180" x2="1400" y2="180" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="360" x2="1400" y2="360" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="540" x2="1400" y2="540" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <line x1="0" y1="720" x2="1400" y2="720" stroke="rgba(0,201,255,0.05)" stroke-width="1"/>
+      <!-- T-mark at bottom -->
+      <rect x="0" y="820" width="1400" height="3" fill="rgba(0,201,255,0.06)"/>
+    </svg>
+  </div>
+  <div class="hero-gradient"></div>
+  <div class="hero-fade"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Context-aware ranking · 2025 season</div>
+    <h1 class="hero-title">
+      How valuable are you<br>
+      <em>where it matters?</em>
+    </h1>
+    <p class="hero-sub">
+      A 43.5 in the 100 free means <strong>average in the SEC</strong>, 
+      <strong>good in the ACC</strong>, <strong>elite in the Patriot League</strong>. 
+      SIR shows your real impact — across every conference, every environment.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#tool">Find your rank</a>
+      <a class="btn-secondary" href="#philosophy">How it's different</a>
+    </div>
+  </div>
+
+  <div class="hero-context">
+    <div class="ctx-card">
+      <div class="ctx-conf">SEC</div>
+      <div class="ctx-rank rank-average">#87</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">ACC</div>
+      <div class="ctx-rank rank-elite">#42</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">Big 12</div>
+      <div class="ctx-rank rank-elite">#19</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">Patriot</div>
+      <div class="ctx-rank rank-dominant">#3</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+    <div class="ctx-card">
+      <div class="ctx-conf">D3</div>
+      <div class="ctx-rank rank-dominant">#1</div>
+      <div class="ctx-time">43.5 · 100 free</div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-strip">
+  <div class="ticker-track">
+    <!-- First copy -->
+    <div class="ticker-item"><span class="ti-rank">#1 SEC</span> · Ryan Lochte · 100 Free · 41.2s <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#3 ACC</span> · 43.5 → Elite impact <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#12 Big 10</span> · Transfer: Georgia → Indiana <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#1 Patriot</span> · 47.2 → Dominant <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">SIR Score 1.24</span> · 200 Free · Top 5% conference <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#8 SEC</span> · 100 Fly · 47.9s · Competitive <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">2025-26 Season</span> · Real conference data · 5 conferences <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#22 ACC → #4 A10</span> · Portal impact shift <span class="ti-dot"></span></div>
+    <!-- Second copy (seamless loop) -->
+    <div class="ticker-item"><span class="ti-rank">#1 SEC</span> · Ryan Lochte · 100 Free · 41.2s <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#3 ACC</span> · 43.5 → Elite impact <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#12 Big 10</span> · Transfer: Georgia → Indiana <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#1 Patriot</span> · 47.2 → Dominant <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">SIR Score 1.24</span> · 200 Free · Top 5% conference <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#8 SEC</span> · 100 Fly · 47.9s · Competitive <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">2025-26 Season</span> · Real conference data · 5 conferences <span class="ti-dot"></span></div>
+    <div class="ticker-item"><span class="ti-rank">#22 ACC → #4 A10</span> · Portal impact shift <span class="ti-dot"></span></div>
+  </div>
+</div>
+<section class="philosophy" id="philosophy">
+  <div class="container">
+    <div class="philosophy-inner">
+      <div>
+        <div class="section-label" style="text-align:center">Why SIR is different</div>
+        <p class="philosophy-quote">
+          Other systems ask <em>"how fast?"</em><br>
+          We ask <em>"how impactful?"</em>
+        </p>
+        <p style="color:var(--slate);font-size:15px;margin-top:1rem;line-height:1.65;">
+          FINA points and SwimCloud rankings tell you how a time compares globally. That's useful for elite performance tracking. But for recruits, transfers, coaches, and teams — the real question is contextual impact in a specific competitive environment.
+        </p>
+      </div>
+      <div>
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Question answered</th>
+              <th>Best for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">FINA Points</td>
+              <td>How fast globally?</td>
+              <td><span class="tag tag-slate">Elite</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">SwimCloud PI</td>
+              <td>How fast in D1?</td>
+              <td><span class="tag tag-slate">D1 athletes</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--cyan)">SIR</td>
+              <td>How impactful <em>here</em>?</td>
+              <td><span class="tag tag-cyan">Everyone</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div><!-- /compare-table-wrap -->
+<section class="modes-section" id="tool">
+  <div class="container">
+    <div class="section-label" style="text-align:center">Interactive tool</div>
+    <h2 class="section-title" style="text-align:center">Find your impact rank</h2>
+    <p class="section-sub" style="margin:0 auto 2rem;text-align:center">
+      Enter your times and pick a mode. SIR calculates your contextual rank across conferences in seconds.
+    </p>
+
+    <div style="display:flex;justify-content:center;margin-bottom:2rem">
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('recruit',this)">Recruit mode</button>
+      <button class="mode-tab" onclick="switchMode('transfer',this)">Transfer portal</button>
+      <button class="mode-tab" onclick="switchMode('coach',this)">Coach search</button>
+    </div>
+    </div>
+
+    <!-- RECRUIT MODE -->
+    <div id="mode-recruit" class="mode-panel active">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Recruit mode</h3>
+          <p class="form-desc">Enter your best times to see how you rank across conferences.</p>
+          <div class="field-row">
+            <div class="field">
+              <label>50 free</label>
+              <input type="text" id="r-50" placeholder="21.50" class="swim-time" autocomplete="off" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label>100 free</label>
+              <input type="text" id="r-100" placeholder="47.20" class="swim-time" autocomplete="off" inputmode="decimal">
+            </div>
+          </div>
+          <div class="field">
+            <label>200 free</label>
+            <input type="text" id="r-200" placeholder="1:45.00" class="swim-time" autocomplete="off" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="r-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <button class="calc-btn" onclick="runRecruit()">Calculate impact rank →</button>
+        </div>
+        <div class="results-panel" id="recruit-results">
+          <div class="results-empty">
+            <div class="empty-icon">🏊</div>
+            <div>Enter your times to see your rank across all conferences</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSFER MODE -->
+    <div id="mode-transfer" class="mode-panel">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Transfer portal</h3>
+          <p class="form-desc">See where you'd rank on target team rosters immediately.</p>
+          <div class="field-row">
+            <div class="field">
+              <label>50 free</label>
+              <input type="text" id="t-50" placeholder="21.50" class="swim-time" autocomplete="off" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label>100 free</label>
+              <input type="text" id="t-100" placeholder="47.20" class="swim-time" autocomplete="off" inputmode="decimal">
+            </div>
+          </div>
+          <div class="field">
+            <label>200 free</label>
+            <input type="text" id="t-200" placeholder="1:45.00" class="swim-time" autocomplete="off" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="t-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <button class="calc-btn" onclick="runTransfer()">Show roster fit →</button>
+        </div>
+        <div class="results-panel" id="transfer-results">
+          <div class="results-empty">
+            <div class="empty-icon">📋</div>
+            <div>Enter your times to see your roster position at target programs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COACH MODE -->
+    <div id="mode-coach" class="mode-panel">
+      <div class="tool-layout">
+        <div class="tool-form">
+          <h3>Coach search</h3>
+          <p class="form-desc">Search for swimmers by event, conference, and gender.</p>
+          <div class="field">
+            <label>Event</label>
+            <select id="c-event">
+              <option value="100free">100 free</option>
+              <option value="50free">50 free</option>
+              <option value="200free">200 free</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Conference</label>
+            <select id="c-conf">
+              <option value="all">All D1</option>
+              <option value="SEC">SEC</option>
+              <option value="ACC">ACC</option>
+              <option value="Big 10">Big 10</option>
+              <option value="Pac-12">Pac-12</option>
+              <option value="Patriot League">Patriot League</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Gender</label>
+              <select id="c-gender">
+                <option value="M">Men</option>
+                <option value="F">Women</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Show top</label>
+              <select id="c-top">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+          <button class="calc-btn" onclick="runCoach()">Search →</button>
+        </div>
+        <div class="results-panel" id="coach-results">
+          <div class="results-empty">
+            <div class="empty-icon">🔍</div>
+            <div>Set your filters and search to find swimmers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-label">Methodology</div>
+    <h2 class="section-title">How SIR is calculated</h2>
+    <p class="section-sub">
+      A single transparent formula built around how swimmers actually contribute at conference championships.
+    </p>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-number">STEP 01</div>
+        <div class="how-title">Percentile mapping</div>
+        <p class="how-desc">Each time is mapped against the conference's percentile distribution for that event and season. Where you finish in the distribution — not the raw time — is what matters.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 02</div>
+        <div class="how-title">SIR score</div>
+        <p class="how-desc">Scores run from 1.000 (best) upward — like golf. Lower is better. A 1.000 is the top of the conference. A 3.000 is average. A 5.000 is at the bottom of the field.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">STEP 03</div>
+        <div class="how-title">Context shift</div>
+        <p class="how-desc">The same SIR process runs independently for each conference using that conference's benchmarks. A swimmer ranked #42 in the ACC might rank #3 in the Patriot League — that's the point.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Built for every swimmer,<br>every staff room</h2>
+    <p class="section-sub" style="margin:0 auto">
+      One free look, no credit card. Unlock full access during beta for less than a protein bar a week.
+    </p>
+    <div class="pricing-grid">
+
+      <!-- Swimmer -->
+      <div class="pricing-card">
+        <div class="pricing-role-icon">🏊</div>
+        <div class="pricing-role">Swimmer</div>
+        <div class="pricing-price">$5<span>/mo</span></div>
+        <div class="pricing-annual">or <strong>$50/year — save 17%</strong></div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>Unlimited searches across all events</li>
+          <li>Rank across every conference instantly</li>
+          <li>Transfer portal fit analysis</li>
+          <li>SIR score + tier breakdown</li>
+          <li class="dim">Admin dashboard access</li>
+          <li class="dim">Roster import tools</li>
+        </ul>
+        <button class="calc-btn" onclick="openAuthModal(event)">Get started →</button>
+      </div>
+
+      <!-- Coach (featured) -->
+      <div class="pricing-card featured">
+        <div class="pricing-featured-badge">Most popular</div>
+        <div class="pricing-role-icon">📋</div>
+        <div class="pricing-role">Coach</div>
+        <div class="pricing-price">$10<span>/mo</span></div>
+        <div class="pricing-annual">or <strong>$100/year — save 17%</strong></div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>Everything in Swimmer</li>
+          <li>Coach search — find impact athletes</li>
+          <li>Sort & filter full conference rosters</li>
+          <li>Portal prospect ranking by SIR</li>
+          <li>Conference benchmark comparisons</li>
+          <li class="dim">Admin dashboard access</li>
+        </ul>
+        <button class="calc-btn" onclick="openAuthModal(event)">Get started →</button>
+      </div>
+
+      <!-- Admin -->
+      <div class="pricing-card">
+        <div class="pricing-role-icon">🔐</div>
+        <div class="pricing-role">Admin</div>
+        <div class="pricing-price" style="font-size:28px;padding-top:6px">Invite only</div>
+        <div class="pricing-annual" style="color:rgba(122,149,181,0.6)">Assigned by existing admin</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>Full platform access</li>
+          <li>Import CSV ranked lists</li>
+          <li>Build real percentile benchmarks</li>
+          <li>User management & approvals</li>
+          <li>Manage conference datasets</li>
+          <li>Override estimated data</li>
+        </ul>
+        <button class="calc-btn" style="opacity:0.5;cursor:default">By invitation</button>
+      </div>
+
+    </div>
+    <div class="pricing-beta-note">
+      🚀 <strong>Beta pricing in effect.</strong> All features are free while we build — create an account now and lock in early access before billing goes live.
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-label">Get started</div>
+    <h2 class="section-title" style="font-size:clamp(36px,5vw,60px)">Know exactly where<br>you stand.</h2>
+    <p class="section-sub" style="max-width:520px">
+      One search, free, no account needed. See your real conference rank in seconds — then unlock everything.
+    </p>
+    <div class="cta-actions">
+      <a class="btn-primary" href="#tool" style="font-size:16px;padding:17px 36px">Find your rank →</a>
+      <button class="btn-secondary" onclick="openAuthModal(event)" style="font-size:16px;padding:17px 36px">Create free account</button>
+    </div>
+    <div style="margin-top:2rem;font-size:13px;color:var(--slate)">
+      No credit card · Free during beta · Cancel anytime
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">SIR <span style="color:var(--slate);font-weight:400">· Swimming Impact Rank</span></div>
+      <div class="footer-note" style="margin-top:4px">Rankings based on 2025-26 conference championship distributions</div>
+    </div>
+    <div class="footer-links">
+      <a href="#tool">Tool</a>
+      <a href="#how">Method</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#philosophy">About</a>
+      <a href="#" onclick="openAuthModal(event)">Sign In</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── Auth Modal ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div class="modal-logo">SIR <span>BETA</span></div>
+    <div class="modal-subtitle" id="modal-subtitle">Choose your role to continue</div>
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Step 1: Role selection -->
+    <div class="auth-step active" id="step-role">
+      <div class="role-grid">
+        <div class="role-card" id="role-swimmer" onclick="selectRole('swimmer')">
+          <div class="role-icon">🏊</div>
+          <div class="role-name">Swimmer</div>
+          <div class="role-price"><strong>$5/mo</strong><br>or $50/yr</div>
+        </div>
+        <div class="role-card" id="role-coach" onclick="selectRole('coach')">
+          <div class="role-icon">📋</div>
+          <div class="role-name">Coach</div>
+          <div class="role-price"><strong>$10/mo</strong><br>or $100/yr</div>
+        </div>
+        <div class="role-card" id="role-admin" onclick="selectRole('admin')">
+          <div class="role-icon">🔐</div>
+          <div class="role-name">Admin</div>
+          <div class="role-price">Invite<br>only</div>
+        </div>
+      </div>
+      <div class="paywall-notice" id="paywall-notice">
+        <span>⚠️</span>
+        <span id="paywall-text"></span>
+      </div>
+      <button class="calc-btn" onclick="goToCredentials()" style="margin-top:1rem">Continue →</button>
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(240,244,255,0.08);text-align:center">
+        <div id="bootstrap-hint" style="font-size:12px;color:var(--slate)"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Credentials -->
+    <div class="auth-step" id="step-creds">
+      <div id="sign-in-form">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" />
+        </div>
+        <button class="calc-btn" onclick="handleSignIn()">Sign In</button>
+        <div class="auth-divider">or</div>
+        <div class="auth-toggle">No account? <a onclick="showSignUp()">Create one</a></div>
+      </div>
+      <div id="sign-up-form" style="display:none">
+        <div class="auth-info" id="admin-invite-note" style="display:none">
+          Admin accounts must be approved. Enter your details and an existing admin will activate your account.
+        </div>
+        <div class="field">
+          <label>Name</label>
+          <input type="text" id="auth-name" placeholder="First Last" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="auth-email-up" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="auth-password-up" placeholder="min 6 characters" />
+        </div>
+        <div class="field" id="team-field">
+          <label>Team / School</label>
+          <input type="text" id="auth-team" placeholder="e.g. Georgia Tech" />
+        </div>
+        <button class="calc-btn" onclick="handleSignUp()">Create Account</button>
+        <div class="auth-divider">or</div>
+        <div class="auth-toggle">Have an account? <a onclick="showSignIn()">Sign in</a></div>
+      </div>
+      <div style="margin-top:1rem">
+        <a onclick="goToRoleStep()" style="font-size:12px;color:var(--slate);cursor:pointer">← Change role</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Admin Panel ─────────────────────────────────────────── -->
+<section class="admin-panel" id="admin-panel">
+  <div class="container">
+    <div class="admin-header">
+      <div class="section-title" style="margin-bottom:0">Admin Dashboard</div>
+      <span class="admin-badge">Admin Only</span>
+    </div>
+    <div class="admin-grid">
+
+      <!-- CSV Import Card -->
+      <div class="admin-card">
+        <h3>📥 Import CSV Data</h3>
+        <div class="card-desc">
+          Upload a ranked swim list (rank, name, school, meet, time). 
+          Data will be parsed into real percentile benchmarks replacing estimated values.
+        </div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="drop-zone-icon">📄</div>
+          <div class="drop-zone-text"><strong>Click to upload</strong> or drag & drop a CSV</div>
+          <div class="drop-zone-text" style="margin-top:4px;font-size:11px">rank, name, school, meet, time</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" onchange="handleCSVFile(this.files[0])">
+        <div class="import-meta">
+          <div class="field" style="margin:0">
+            <label>Event</label>
+            <select id="import-event">
+              <option value="100free">100 Free</option>
+              <option value="50free">50 Free</option>
+              <option value="200free">200 Free</option>
+              <option value="100fly">100 Fly</option>
+              <option value="200fly">200 Fly</option>
+              <option value="100back">100 Back</option>
+              <option value="200back">200 Back</option>
+              <option value="100breast">100 Breast</option>
+              <option value="200breast">200 Breast</option>
+              <option value="200im">200 IM</option>
+              <option value="400im">400 IM</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Gender</label>
+            <select id="import-gender">
+              <option value="M">Men</option>
+              <option value="F">Women</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Conference</label>
+            <input type="text" id="import-conf" placeholder="e.g. SEC" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Season</label>
+            <input type="text" id="import-season" placeholder="e.g. 2025-26" value="2025-26" />
+          </div>
+        </div>
+        <div class="csv-preview" id="csv-preview"></div>
+        <button class="calc-btn" onclick="commitCSVImport()" style="margin-top:0.75rem" id="commit-btn" disabled>
+          Import & Build Benchmarks
+        </button>
+        <div class="import-result" id="import-result"></div>
+      </div>
+
+      <!-- Imported Datasets Card -->
+      <div class="admin-card">
+        <h3>📊 Imported Datasets</h3>
+        <div class="card-desc">All real-data benchmarks currently loaded. These override estimated percentile values in the calculator.</div>
+        <div id="dataset-list" style="max-height:340px;overflow-y:auto"></div>
+      </div>
+
+      <!-- User Management -->
+      <div class="admin-card admin-full">
+        <h3>👥 User Management</h3>
+        <div class="card-desc">Users who have created accounts. Admins can promote or deactivate accounts.</div>
+        <div style="overflow-x:auto">
+          <table class="user-table" id="user-table">
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="user-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+// ─── Free search gate ──────────────────────────────────────────
+// Guests get 1 free search total. After that, prompt sign-in/payment.
+let freeSearchesUsed = parseInt(sessionStorage.getItem('sir_free_searches') || '0');
+
+function checkSearchGate(resultElId) {
+  // Signed-in users always pass
+  if (SIR_AUTH) return true;
+  if (freeSearchesUsed < 1) return true; // first search is free
+  // Show paywall prompt in the results panel
+  const el = document.getElementById(resultElId);
+  el.innerHTML = `
+    <div class="results-empty" style="gap:16px">
+      <div class="empty-icon">🔒</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--white)">
+        Free search used
+      </div>
+      <div style="color:var(--slate);font-size:14px;max-width:320px;text-align:center;line-height:1.6">
+        You've used your free look. Sign in or create an account to keep searching.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+        <button class="btn-primary" onclick="openAuthModal(event)" style="font-size:14px;padding:10px 22px">
+          Sign In / Create Account
+        </button>
+      </div>
+      <div style="font-size:12px;color:var(--slate);margin-top:4px">
+        Swimmer — <strong style="color:var(--cyan)">$5/mo</strong> &nbsp;·&nbsp;
+        Coach — <strong style="color:var(--amber)">$10/mo</strong> &nbsp;·&nbsp;
+        <em style="color:var(--slate)">Free during beta</em>
+      </div>
+    </div>`;
+  return false;
+}
+
+function recordFreeSearch() {
+  if (!SIR_AUTH) {
+    freeSearchesUsed++;
+    sessionStorage.setItem('sir_free_searches', freeSearchesUsed);
+  }
+}
+
+// ─── Data ─────────────────────────────────────────────────────
+const CONF_DATA = {
+  M: {
+    "50free": {
+      "SEC":          { p10:19.8,p25:20.3,p50:20.9,p75:21.5,p90:22.1,size:120 },
+      "ACC":          { p10:20.1,p25:20.7,p50:21.3,p75:21.9,p90:22.6,size:110 },
+      "Big 10":       { p10:20.2,p25:20.8,p50:21.4,p75:22.1,p90:22.8,size:115 },
+      "Pac-12":       { p10:20.0,p25:20.6,p50:21.2,p75:21.8,p90:22.4,size:95  },
+      "Big 12":       { p10:20.4,p25:21.0,p50:21.7,p75:22.4,p90:23.0,size:80  },
+      "Patriot League":{ p10:21.0,p25:21.7,p50:22.5,p75:23.3,p90:24.0,size:60 },
+      "MPSF":         { p10:20.3,p25:20.9,p50:21.5,p75:22.2,p90:22.9,size:70  },
+      "D3 Elite":     { p10:21.5,p25:22.3,p50:23.1,p75:24.0,p90:24.8,size:200 },
+    },
+    "100free": {
+      "SEC":          { p10:43.0,p25:43.8,p50:44.9,p75:46.1,p90:47.2,size:120 },
+      "ACC":          { p10:43.5,p25:44.4,p50:45.5,p75:46.7,p90:47.9,size:110 },
+      "Big 10":       { p10:43.7,p25:44.6,p50:45.7,p75:47.0,p90:48.2,size:115 },
+      "Pac-12":       { p10:43.3,p25:44.2,p50:45.2,p75:46.4,p90:47.5,size:95  },
+      "Big 12":       { p10:44.0,p25:45.0,p50:46.1,p75:47.4,p90:48.6,size:80  },
+      "Patriot League":{ p10:45.0,p25:46.2,p50:47.5,p75:48.9,p90:50.2,size:60 },
+      "MPSF":         { p10:43.8,p25:44.7,p50:45.8,p75:47.1,p90:48.3,size:70  },
+      "D3 Elite":     { p10:45.8,p25:47.2,p50:48.7,p75:50.3,p90:51.8,size:200 },
+    },
+    "200free": {
+      "SEC":          { p10:94.5,p25:96.0,p50:98.0,p75:100.5,p90:103.0,size:120 },
+      "ACC":          { p10:95.2,p25:96.8,p50:98.9,p75:101.4,p90:103.9,size:110 },
+      "Big 10":       { p10:95.5,p25:97.2,p50:99.3,p75:102.0,p90:104.5,size:115 },
+      "Pac-12":       { p10:94.8,p25:96.4,p50:98.4,p75:100.9,p90:103.4,size:95  },
+      "Big 12":       { p10:96.0,p25:97.8,p50:100.0,p75:102.7,p90:105.2,size:80 },
+      "Patriot League":{ p10:98.5,p25:100.5,p50:103.0,p75:106.0,p90:108.5,size:60 },
+      "MPSF":         { p10:95.8,p25:97.5,p50:99.6,p75:102.3,p90:104.8,size:70  },
+      "D3 Elite":     { p10:100.0,p25:102.5,p50:105.5,p75:108.5,p90:111.5,size:200 },
+    }
+  },
+  F: {
+    "50free": {
+      "SEC":          { p10:22.3,p25:22.9,p50:23.6,p75:24.3,p90:25.0,size:120 },
+      "ACC":          { p10:22.6,p25:23.2,p50:24.0,p75:24.8,p90:25.6,size:110 },
+      "Big 10":       { p10:22.8,p25:23.4,p50:24.2,p75:25.0,p90:25.8,size:115 },
+      "Pac-12":       { p10:22.5,p25:23.1,p50:23.8,p75:24.6,p90:25.4,size:95  },
+      "Big 12":       { p10:22.9,p25:23.6,p50:24.4,p75:25.2,p90:26.0,size:80  },
+      "Patriot League":{ p10:23.5,p25:24.3,p50:25.2,p75:26.1,p90:27.0,size:60 },
+      "MPSF":         { p10:22.7,p25:23.3,p50:24.1,p75:24.9,p90:25.7,size:70  },
+      "D3 Elite":     { p10:24.0,p25:24.9,p50:25.9,p75:26.9,p90:27.8,size:200 },
+    },
+    "100free": {
+      "SEC":          { p10:48.8,p25:49.8,p50:51.1,p75:52.5,p90:53.9,size:120 },
+      "ACC":          { p10:49.3,p25:50.4,p50:51.8,p75:53.3,p90:54.7,size:110 },
+      "Big 10":       { p10:49.5,p25:50.6,p50:52.0,p75:53.5,p90:55.0,size:115 },
+      "Pac-12":       { p10:49.0,p25:50.1,p50:51.4,p75:52.9,p90:54.3,size:95  },
+      "Big 12":       { p10:49.7,p25:50.9,p50:52.4,p75:54.0,p90:55.5,size:80  },
+      "Patriot League":{ p10:51.0,p25:52.4,p50:54.0,p75:55.7,p90:57.3,size:60 },
+      "MPSF":         { p10:49.4,p25:50.5,p50:51.9,p75:53.4,p90:54.9,size:70  },
+      "D3 Elite":     { p10:52.0,p25:53.6,p50:55.3,p75:57.1,p90:58.8,size:200 },
+    },
+    "200free": {
+      "SEC":          { p10:107,p25:109,p50:112,p75:115,p90:118,size:120 },
+      "ACC":          { p10:108,p25:110,p50:113,p75:116.5,p90:120,size:110 },
+      "Big 10":       { p10:108.5,p25:111,p50:114,p75:117.5,p90:121,size:115 },
+      "Pac-12":       { p10:107.5,p25:109.5,p50:112.5,p75:116,p90:119.5,size:95 },
+      "Big 12":       { p10:109,p25:111.5,p50:114.5,p75:118,p90:121.5,size:80 },
+      "Patriot League":{ p10:112,p25:115,p50:118.5,p75:122,p90:126,size:60 },
+      "MPSF":         { p10:108,p25:110.5,p50:113.5,p75:117,p90:120.5,size:70 },
+      "D3 Elite":     { p10:114,p25:117.5,p50:121.5,p75:125.5,p90:130,size:200 },
+    }
+  }
+};
+
+const ROSTERS = {
+  M: {
+    "Virginia Tech (ACC)": { conf:"ACC", "100free":[43.2,43.7,44.1,44.5,44.9,45.3,45.8,46.2,46.7,47.1], "50free":[19.9,20.2,20.5,20.8,21.1,21.4,21.7,22.0,22.3,22.6], "200free":[95.0,95.8,96.6,97.5,98.4,99.4,100.4,101.5,102.6,103.8] },
+    "NC State (ACC)":      { conf:"ACC", "100free":[42.8,43.3,43.8,44.3,44.8,45.4,46.0,46.6,47.2,47.9], "50free":[19.6,19.9,20.2,20.5,20.8,21.1,21.4,21.8,22.2,22.6], "200free":[94.2,95.0,95.8,96.7,97.6,98.6,99.7,100.8,102.0,103.3] },
+    "Navy (Patriot)":      { conf:"Patriot League", "100free":[45.5,46.1,46.7,47.3,47.9,48.5,49.1,49.8,50.5,51.2], "50free":[21.2,21.6,22.0,22.4,22.8,23.2,23.7,24.1,24.6,25.1], "200free":[100.0,101.2,102.4,103.7,105.0,106.4,107.8,109.3,110.8,112.4] },
+    "MIT (D3)":            { conf:"D3 Elite", "100free":[47.0,47.8,48.6,49.4,50.3,51.1,52.0,52.9,53.9,54.9], "50free":[22.0,22.5,23.0,23.5,24.0,24.6,25.2,25.8,26.4,27.0], "200free":[103.5,105.0,106.5,108.0,109.6,111.2,112.9,114.6,116.4,118.2] }
+  },
+  F: {
+    "Virginia Tech (ACC)": { conf:"ACC", "100free":[49.5,50.1,50.7,51.4,52.1,52.8,53.5,54.3,55.1,55.9], "50free":[23.0,23.4,23.8,24.2,24.6,25.1,25.6,26.1,26.6,27.1], "200free":[109,110.5,112,113.5,115,116.6,118.2,119.9,121.6,123.4] },
+    "NC State (ACC)":      { conf:"ACC", "100free":[49.0,49.6,50.2,50.9,51.6,52.3,53.0,53.8,54.6,55.4], "50free":[22.7,23.1,23.5,23.9,24.3,24.7,25.2,25.7,26.2,26.7], "200free":[108,109.4,110.9,112.4,113.9,115.5,117.1,118.8,120.5,122.3] },
+    "Navy (Patriot)":      { conf:"Patriot League", "100free":[51.5,52.3,53.1,53.9,54.7,55.6,56.5,57.4,58.4,59.4], "50free":[24.0,24.5,25.0,25.5,26.1,26.7,27.3,27.9,28.6,29.3], "200free":[113,114.8,116.6,118.4,120.3,122.2,124.2,126.2,128.3,130.4] },
+    "MIT (D3)":            { conf:"D3 Elite", "100free":[53.0,54.0,55.0,56.0,57.0,58.1,59.2,60.3,61.5,62.7], "50free":[24.8,25.4,26.0,26.6,27.3,28.0,28.7,29.5,30.3,31.1], "200free":[117,119.0,121.0,123.1,125.2,127.4,129.6,131.9,134.3,136.7] }
+  }
+};
+
+const SAMPLE_SWIMMERS = {
+  M: [
+    { name:"Alex Fountain",  team:"Tennessee",  conf:"SEC",          "100free":43.1,"50free":19.7,"200free":94.8 },
+    { name:"Marcus Webb",    team:"Virginia Tech",conf:"ACC",        "100free":43.8,"50free":20.1,"200free":95.9 },
+    { name:"Jordan Tse",     team:"NC State",    conf:"ACC",          "100free":44.2,"50free":20.4,"200free":96.8 },
+    { name:"Dylan Park",     team:"Ohio State",  conf:"Big 10",       "100free":44.7,"50free":20.7,"200free":97.6 },
+    { name:"Cam Reyes",      team:"Navy",        conf:"Patriot League","100free":45.9,"50free":21.4,"200free":100.5 },
+    { name:"Nick Ballard",   team:"Bucknell",    conf:"Patriot League","100free":47.2,"50free":22.0,"200free":103.8 },
+    { name:"Ryan Cho",       team:"MIT",         conf:"D3 Elite",     "100free":48.1,"50free":22.5,"200free":105.0 },
+    { name:"Lucas Herr",     team:"Kenyon",      conf:"D3 Elite",     "100free":47.5,"50free":21.9,"200free":104.1 },
+    { name:"Tyler Moss",     team:"Alabama",     conf:"SEC",          "100free":43.5,"50free":19.9,"200free":95.3 },
+    { name:"Connor Hall",    team:"Georgia Tech", conf:"ACC",         "100free":44.0,"50free":20.3,"200free":96.2 },
+  ],
+  F: [
+    { name:"Ava Chen",       team:"Florida",     conf:"SEC",          "100free":49.1,"50free":22.8,"200free":108.5 },
+    { name:"Sara Muñoz",     team:"NC State",    conf:"ACC",          "100free":49.8,"50free":23.2,"200free":110.0 },
+    { name:"Maya Patel",     team:"Michigan",    conf:"Big 10",       "100free":50.4,"50free":23.5,"200free":111.5 },
+    { name:"Brooke Kim",     team:"Navy",        conf:"Patriot League","100free":52.1,"50free":24.2,"200free":114.5 },
+    { name:"Taylor Ross",    team:"Lafayette",   conf:"Patriot League","100free":53.8,"50free":25.0,"200free":118.0 },
+    { name:"Emma Walsh",     team:"Williams",    conf:"D3 Elite",     "100free":53.2,"50free":24.7,"200free":116.5 },
+    { name:"Lily Grant",     team:"Amherst",     conf:"D3 Elite",     "100free":54.1,"50free":25.2,"200free":119.0 },
+    { name:"Nina Torres",    team:"Georgia",     conf:"SEC",          "100free":49.5,"50free":23.0,"200free":109.3 },
+    { name:"Kate Sullivan",  team:"Virginia",    conf:"ACC",          "100free":50.1,"50free":23.3,"200free":110.8 },
+    { name:"Jess Wu",        team:"Northwestern",conf:"Big 10",       "100free":50.7,"50free":23.6,"200free":112.0 },
+  ]
+};
+
+// ─── Engine ────────────────────────────────────────────────────
+function pctRank(time, d) {
+  const s = d.size;
+  if (time <= d.p10) return Math.max(1, Math.round(s * 0.05 * (time / d.p10)));
+  if (time <= d.p25) return Math.round(s * (0.05 + 0.20 * (time - d.p10) / (d.p25 - d.p10)));
+  if (time <= d.p50) return Math.round(s * (0.25 + 0.25 * (time - d.p25) / (d.p50 - d.p25)));
+  if (time <= d.p75) return Math.round(s * (0.50 + 0.25 * (time - d.p50) / (d.p75 - d.p50)));
+  if (time <= d.p90) return Math.round(s * (0.75 + 0.15 * (time - d.p75) / (d.p90 - d.p75)));
+  return Math.min(s, Math.round(s * (0.90 + 0.10 * Math.min(1, (time - d.p90) / (d.p90 * 0.04)))));
+}
+
+function sirScore(rank, size) {
+  return (1 + (rank - 1) / Math.max(size - 1, 1) * 4).toFixed(3);
+}
+
+function getTier(rank, size) {
+  const p = rank / size;
+  if (p <= 0.05) return ['tier-dominant','Dominant'];
+  if (p <= 0.20) return ['tier-elite','Elite'];
+  if (p <= 0.45) return ['tier-competitive','Competitive'];
+  if (p <= 0.70) return ['tier-average','Average'];
+  return ['tier-below','Below avg'];
+}
+
+function barColor(rank, total) {
+  const p = rank / total;
+  if (p <= 0.15) return '#00C9FF';
+  if (p <= 0.35) return '#22D67A';
+  if (p <= 0.60) return '#F5A623';
+  return '#8FA3BF';
+}
+
+// ─── Tab switching ─────────────────────────────────────────────
+function switchMode(id, btn) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mode-' + id).classList.add('active');
+}
+
+// ─── Swim time parser ───────────────────────────────────────────
+// Accepts: "21.50"  "47.20"  "1:45.00"  "1:05.34"  "59.99"
+// Returns seconds as a float, or null if unparseable.
+// Mirrors the Excel formula: =IF(REGEXMATCH(E,":"),[min]*60+[sec], E)
+function parseSwimTime(raw) {
+  if (!raw || !raw.toString().trim()) return null;
+  const s = raw.toString().trim();
+  if (s.includes(':')) {
+    const parts = s.split(':');
+    if (parts.length !== 2) return null;
+    const mins = parseInt(parts[0], 10);
+    const secs = parseFloat(parts[1]);
+    if (isNaN(mins) || isNaN(secs)) return null;
+    if (secs >= 60) return null; // invalid
+    return mins * 60 + secs;
+  }
+  const val = parseFloat(s);
+  return isNaN(val) ? null : val;
+}
+
+// Validate and give live feedback on swim-time inputs
+function validateSwimTimeInput(input) {
+  const val = input.value.trim();
+  if (!val) { input.style.borderColor = ''; return; }
+  const t = parseSwimTime(val);
+  if (t === null || t <= 0) {
+    input.style.borderColor = 'var(--red)';
+  } else {
+    input.style.borderColor = 'var(--green)';
+  }
+}
+
+// Attach live validation to all swim-time inputs
+document.querySelectorAll('.swim-time').forEach(inp => {
+  inp.addEventListener('input', () => validateSwimTimeInput(inp));
+  inp.addEventListener('blur',  () => {
+    // Auto-format on blur: if they typed "105" or "105.0", show as "1:45.00"
+    const val = inp.value.trim();
+    if (!val) return;
+    // Only reformat if no colon — pure seconds input
+    if (!val.includes(':')) {
+      const t = parseFloat(val);
+      if (!isNaN(t) && t >= 60) {
+        const m = Math.floor(t / 60);
+        const s = (t - m * 60).toFixed(2).padStart(5, '0');
+        inp.value = `${m}:${s}`;
+        validateSwimTimeInput(inp);
+      }
+    }
+  });
+});
+
+// ─── Recruit mode ──────────────────────────────────────────────
+function runRecruit() {
+  if (!checkSearchGate('recruit-results')) return;
+  const t50  = parseSwimTime(document.getElementById('r-50').value);
+  const t100 = parseSwimTime(document.getElementById('r-100').value);
+  const t200 = parseSwimTime(document.getElementById('r-200').value);
+  const g    = document.getElementById('r-gender').value;
+  const el   = document.getElementById('recruit-results');
+
+  if (!t50 && !t100 && !t200) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">⚠️</div><div>Enter at least one time to calculate your rank.</div></div>';
+    return;
+  }
+
+  const confs = Object.keys(CONF_DATA[g]["100free"]);
+  const results = [];
+
+  for (const conf of confs) {
+    const evResults = [];
+    let sumPct = 0, count = 0;
+    const inputs = [
+      { key:'50free',  time: t50,  label:'50 free',  w:0.2833 },
+      { key:'100free', time: t100, label:'100 free', w:0.2833 },
+      { key:'200free', time: t200, label:'200 free', w:0.2833 },
+    ];
+    for (const ev of inputs) {
+      if (!ev.time) continue;
+      const d = CONF_DATA[g][ev.key][conf];
+      const r = pctRank(ev.time, d);
+      evResults.push({ label: ev.label, rank: r, size: d.size });
+      sumPct += r / d.size;
+      count++;
+    }
+    if (!count) continue;
+    const avgPct = sumPct / count;
+    const refSize = CONF_DATA[g]["100free"][conf].size;
+    const approxRank = Math.round(avgPct * refSize);
+    const sir = sirScore(approxRank, refSize);
+    results.push({ conf, approxRank, sir, evResults, size: refSize });
+  }
+
+  results.sort((a, b) => a.approxRank - b.approxRank);
+  const best = results[0];
+
+  let html = '<div style="margin-bottom:1.1rem">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Impact rank by conference</div>';
+  html += '<div class="conf-grid">';
+  for (const r of results) {
+    const [tc, tl] = getTier(r.approxRank, r.size);
+    const isTop = r.conf === best.conf;
+    html += `<div class="conf-card${isTop ? ' top-conf' : ''}">
+      <div class="conf-card-name">${r.conf}</div>
+      <div class="conf-card-rank" style="color:${isTop ? 'var(--cyan)' : 'var(--white)'}">#${r.approxRank}</div>
+      <div class="conf-card-of">of ${r.size}</div>
+      <div class="conf-card-tier ${tc}">${tl}</div>
+      <div class="conf-card-sir">SIR ${r.sir}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  if (best && best.evResults.length) {
+    html += `<div class="breakdown-box">
+      <div class="breakdown-title">Event breakdown — ${best.conf} (your best fit)</div>`;
+    for (const ev of best.evResults) {
+      const barPct = Math.round((1 - (ev.rank - 1) / ev.size) * 100);
+      html += `<div class="breakdown-row">
+        <span class="breakdown-label">${ev.label}</span>
+        <div style="flex:1;margin:0 12px">
+          <div class="bar-mini"><div class="bar-mini-fill" style="width:${barPct}%"></div></div>
+        </div>
+        <span class="breakdown-val">#${ev.rank} <span style="color:var(--slate);font-weight:400">of ${ev.size}</span></span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  recordFreeSearch();
+  el.innerHTML = html;
+}
+
+// ─── Transfer mode ─────────────────────────────────────────────
+function runTransfer() {
+  if (!checkSearchGate('transfer-results')) return;
+  const t50  = parseSwimTime(document.getElementById('t-50').value);
+  const t100 = parseSwimTime(document.getElementById('t-100').value);
+  const t200 = parseSwimTime(document.getElementById('t-200').value);
+  const g    = document.getElementById('t-gender').value;
+  const el   = document.getElementById('transfer-results');
+
+  if (!t50 && !t100 && !t200) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">⚠️</div><div>Enter at least one time to see your roster fit.</div></div>';
+    return;
+  }
+
+  const rosters = ROSTERS[g];
+  const teamResults = [];
+
+  for (const [team, data] of Object.entries(rosters)) {
+    const rows = [];
+    let totalImpact = 0, n = 0;
+    const checks = [
+      { key:'100free', time:t100, label:'100 free' },
+      { key:'50free',  time:t50,  label:'50 free' },
+      { key:'200free', time:t200, label:'200 free' },
+    ];
+    for (const c of checks) {
+      if (!c.time || !data[c.key]) continue;
+      const sorted = [...data[c.key], c.time].sort((a,b)=>a-b);
+      const rank   = sorted.indexOf(c.time) + 1;
+      const pct    = 1 - (rank - 1) / sorted.length;
+      rows.push({ ev: c.label, rank, total: sorted.length, pct });
+      totalImpact += pct; n++;
+    }
+    if (!n) continue;
+    teamResults.push({ team, conf: data.conf, rows, avgImpact: totalImpact / n });
+  }
+
+  teamResults.sort((a, b) => b.avgImpact - a.avgImpact);
+
+  let html = '<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">Roster fit</div>';
+  teamResults.forEach((t, i) => {
+    const impactPct = Math.round(t.avgImpact * 100);
+    const impactColor = impactPct >= 70 ? 'var(--cyan)' : impactPct >= 45 ? 'var(--green)' : 'var(--amber)';
+    html += `<div class="team-card${i === 0 ? ' best-fit' : ''}">
+      <div class="team-header">
+        <div>
+          <div class="team-name">${t.team}</div>
+          <div class="team-conf">${t.conf}</div>
+        </div>
+        <div class="team-impact-badge" style="background:rgba(0,0,0,0.3);color:${impactColor}">${impactPct}% impact</div>
+      </div>
+      <div class="event-bars">`;
+    for (const r of t.rows) {
+      const barPct = Math.round((1 - (r.rank - 1) / r.total) * 100);
+      const col    = barColor(r.rank, r.total);
+      html += `<div class="bar-row">
+        <span class="bar-ev">${r.ev}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${barPct}%;background:${col}"></div></div>
+        <span class="bar-rank-text" style="color:${col}">#${r.rank} / ${r.total}</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  });
+
+  recordFreeSearch();
+  el.innerHTML = html;
+}
+
+// ─── Coach mode ─────────────────────────────────────────────────
+function runCoach() {
+  if (!checkSearchGate('coach-results')) return;
+  const evKey = document.getElementById('c-event').value;
+  const conf  = document.getElementById('c-conf').value;
+  const g     = document.getElementById('c-gender').value;
+  const top   = parseInt(document.getElementById('c-top').value);
+  const el    = document.getElementById('coach-results');
+
+  let swimmers = SAMPLE_SWIMMERS[g].slice();
+  if (conf !== 'all') swimmers = swimmers.filter(s => s.conf === conf);
+  swimmers.sort((a,b) => a[evKey] - b[evKey]);
+  swimmers = swimmers.slice(0, top);
+
+  if (!swimmers.length) {
+    el.innerHTML = '<div class="results-empty"><div class="empty-icon">🔍</div><div>No swimmers match those filters in the current dataset.</div></div>';
+    return;
+  }
+
+  const evLabels = { "100free":"100 free", "50free":"50 free", "200free":"200 free" };
+  let html = `<div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">${evLabels[evKey]} · ${conf === 'all' ? 'All D1' : conf} · ${g === 'M' ? 'Men' : 'Women'}</div>`;
+  html += '<div style="overflow-x:auto"><table class="coach-table"><thead><tr><th>#</th><th>Swimmer</th><th>Team</th><th>Conference</th><th>Time</th><th>SIR score</th></tr></thead><tbody>';
+
+  swimmers.forEach((s, i) => {
+    const badgeClass = i === 0 ? 'badge-gold' : i < 3 ? 'badge-silver' : 'badge-other';
+    const d = CONF_DATA[g][evKey][s.conf];
+    let sir = '—';
+    if (d) { const r = pctRank(s[evKey], d); sir = sirScore(r, d.size); }
+    html += `<tr>
+      <td><span class="rank-badge ${badgeClass}">${i+1}</span></td>
+      <td style="font-weight:500">${s.name}</td>
+      <td style="color:var(--slate)">${s.team}</td>
+      <td><span class="tag tag-slate" style="font-size:10px">${s.conf}</span></td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${s[evKey]}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--cyan)">${sir}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  recordFreeSearch();
+  el.innerHTML = html;
+}
+
+// ─── Enter key support ─────────────────────────────────────────
+document.querySelectorAll('.swim-time').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const panel = inp.closest('.mode-panel');
+      if (panel) panel.querySelector('.calc-btn').click();
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH SYSTEM  (localStorage-backed demo — swap for real backend)
+// ═══════════════════════════════════════════════════════════════
+let SIR_AUTH = JSON.parse(localStorage.getItem('sir_auth') || 'null');
+let selectedRole = null;
+let pendingCSVData = null;
+
+const ROLE_META = {
+  swimmer: { label: 'Swimmer', tag: 'role-tag-swimmer', priceShort: '$5/mo or $50/yr' },
+  coach:   { label: 'Coach',   tag: 'role-tag-coach',   priceShort: '$10/mo or $100/yr' },
+  admin:   { label: 'Admin',   tag: 'role-tag-admin',   priceShort: 'Invite only' },
+};
+
+function openAuthModal(e) {
+  if (e) e.preventDefault();
+  if (SIR_AUTH) return;
+  document.getElementById('auth-modal').classList.add('open');
+  selectedRole = null;
+  goToRoleStep();
+  // Show bootstrap hint if no admin exists yet
+  const hint = document.getElementById('bootstrap-hint');
+  const admins = getUsers().filter(u => u.role === 'admin' && u.status === 'active');
+  if (admins.length === 0) {
+    hint.innerHTML = '🔑 <strong style="color:var(--cyan)">No admin yet?</strong> Select Admin role → Create Account. The first admin is auto-approved.';
+  } else {
+    hint.innerHTML = '';
+  }
+}
+function closeAuthModal() {
+  document.getElementById('auth-modal').classList.remove('open');
+  clearAuthError();
+}
+
+function selectRole(r) {
+  selectedRole = r;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('role-' + r).classList.add('selected');
+  const notice = document.getElementById('paywall-notice');
+  const text   = document.getElementById('paywall-text');
+  if (r === 'swimmer') {
+    notice.classList.add('show');
+    text.textContent = 'Swimmer access will require $5/month or $50/year. (Billing not yet active — free during beta.)';
+  } else if (r === 'coach') {
+    notice.classList.add('show');
+    text.textContent = 'Coach access will require $10/month or $100/year. (Billing not yet active — free during beta.)';
+  } else {
+    notice.classList.remove('show');
+  }
+}
+
+function goToCredentials() {
+  if (!selectedRole) { showAuthError('Please select a role.'); return; }
+  clearAuthError();
+  document.getElementById('step-role').classList.remove('active');
+  document.getElementById('step-creds').classList.add('active');
+  document.getElementById('modal-subtitle').textContent =
+    ROLE_META[selectedRole].label + ' — ' + ROLE_META[selectedRole].priceShort;
+  document.getElementById('admin-invite-note').style.display =
+    selectedRole === 'admin' ? 'block' : 'none';
+}
+
+function goToRoleStep() {
+  clearAuthError();
+  document.getElementById('step-creds').classList.remove('active');
+  document.getElementById('step-role').classList.add('active');
+  document.getElementById('modal-subtitle').textContent = 'Choose your role to continue';
+}
+
+function showSignUp() {
+  document.getElementById('sign-in-form').style.display = 'none';
+  document.getElementById('sign-up-form').style.display = 'block';
+}
+function showSignIn() {
+  document.getElementById('sign-up-form').style.display = 'none';
+  document.getElementById('sign-in-form').style.display = 'block';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.classList.add('show');
+}
+function clearAuthError() {
+  const el = document.getElementById('auth-error');
+  el.textContent = ''; el.classList.remove('show');
+}
+
+// Simple localStorage-based user store
+function getUsers() { return JSON.parse(localStorage.getItem('sir_users') || '[]'); }
+function saveUsers(u) { localStorage.setItem('sir_users', JSON.stringify(u)); }
+
+function handleSignIn() {
+  const email = document.getElementById('auth-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('auth-password').value;
+  if (!email || !pass) { showAuthError('Please fill in all fields.'); return; }
+  const users = getUsers();
+  const user  = users.find(u => u.email === email && u.password === pass);
+  if (!user) { showAuthError('Incorrect email or password.'); return; }
+  if (user.status === 'pending') { showAuthError('Your account is pending admin approval.'); return; }
+  signInAs(user);
+}
+
+function handleSignUp() {
+  const name  = document.getElementById('auth-name').value.trim();
+  const email = document.getElementById('auth-email-up').value.trim().toLowerCase();
+  const pass  = document.getElementById('auth-password-up').value;
+  const team  = document.getElementById('auth-team').value.trim();
+  if (!name || !email || !pass) { showAuthError('Please fill in all fields.'); return; }
+  if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  const users = getUsers();
+  if (users.find(u => u.email === email)) { showAuthError('Email already registered.'); return; }
+  const newUser = {
+    id: Date.now(),
+    name, email, password: pass, team,
+    role: selectedRole,
+    status: selectedRole === 'admin' ? 'pending' : 'active',
+    createdAt: new Date().toISOString(),
+  };
+  // First admin is auto-approved for demo purposes
+  if (selectedRole === 'admin' && users.filter(u => u.role === 'admin').length === 0) {
+    newUser.status = 'active';
+  }
+  users.push(newUser);
+  saveUsers(users);
+  if (newUser.status === 'pending') {
+    showAuthError('Account created! An admin will review and activate it.');
+    return;
+  }
+  signInAs(newUser);
+}
+
+function signInAs(user) {
+  SIR_AUTH = user;
+  localStorage.setItem('sir_auth', JSON.stringify(user));
+  closeAuthModal();
+  updateNavAuth();
+  if (user.role === 'admin') showAdminPanel();
+}
+
+function signOut() {
+  SIR_AUTH = null;
+  localStorage.removeItem('sir_auth');
+  updateNavAuth();
+  document.getElementById('admin-panel').classList.remove('visible');
+}
+
+function updateNavAuth() {
+  const area = document.getElementById('nav-auth-area');
+  if (!SIR_AUTH) {
+    area.innerHTML = '<a class="nav-cta" href="#" onclick="openAuthModal(event)">Sign In</a>';
+  } else {
+    const m = ROLE_META[SIR_AUTH.role];
+    area.innerHTML = `
+      <div class="nav-user">
+        <span class="nav-user-badge">${SIR_AUTH.name}</span>
+        <span class="nav-user-role ${m.tag}">${m.label}</span>
+        <button class="btn-signout" onclick="signOut()">Sign out</button>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════════════
+function showAdminPanel() {
+  document.getElementById('admin-panel').classList.add('visible');
+  renderDatasets();
+  renderUserTable();
+}
+
+// ── CSV Import ─────────────────────────────────────────────────
+function handleCSVFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    if (!rows.length) {
+      document.getElementById('import-result').className = 'import-result error';
+      document.getElementById('import-result').textContent = 'Could not parse CSV. Check format.';
+      document.getElementById('import-result').style.display = 'block';
+      return;
+    }
+    pendingCSVData = rows;
+    const preview = document.getElementById('csv-preview');
+    preview.textContent = rows.slice(0, 8).map(r =>
+      `#${r.rank}  ${r.name.padEnd(28)} ${r.time}s`
+    ).join('\n') + (rows.length > 8 ? `\n... and ${rows.length - 8} more` : '');
+    preview.classList.add('show');
+    document.getElementById('commit-btn').disabled = false;
+    document.getElementById('import-result').style.display = 'none';
+    const dz = document.getElementById('drop-zone');
+    dz.querySelector('.drop-zone-text').innerHTML =
+      `<strong>${file.name}</strong> — ${rows.length} rows loaded`;
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const rows  = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    // Handle quoted fields
+    const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || line.split(',');
+    const clean = cols.map(c => c.replace(/^"|"$/g,'').trim());
+    const rankRaw = clean[0];
+    const rank = parseInt(rankRaw);
+    if (isNaN(rank)) continue;
+    // col layout: rank, name, school(may be empty), meet, time
+    let name, time;
+    if (clean.length >= 5) {
+      name = clean[1];
+      time = parseFloat(clean[4]);
+    } else if (clean.length === 4) {
+      name = clean[1];
+      time = parseFloat(clean[3]);
+    } else continue;
+    if (isNaN(time)) continue;
+    rows.push({ rank, name, time });
+  }
+  return rows;
+}
+
+function computePercentilesFromList(rows) {
+  const times = rows.map(r => r.time).sort((a,b) => a - b);
+  const n     = times.length;
+  function pct(p) {
+    const idx = (p / 100) * (n - 1);
+    const lo  = Math.floor(idx), hi = Math.ceil(idx);
+    return +(times[lo] + (idx - lo) * (times[hi] - times[lo])).toFixed(3);
+  }
+  return { p10: pct(10), p25: pct(25), p50: pct(50), p75: pct(75), p90: pct(90), size: n };
+}
+
+function getImportedDatasets() {
+  return JSON.parse(localStorage.getItem('sir_imported_datasets') || '[]');
+}
+function saveImportedDatasets(d) { localStorage.setItem('sir_imported_datasets', JSON.stringify(d)); }
+
+function commitCSVImport() {
+  if (!pendingCSVData || !pendingCSVData.length) return;
+  const event  = document.getElementById('import-event').value;
+  const gender = document.getElementById('import-gender').value;
+  const conf   = document.getElementById('import-conf').value.trim().toUpperCase();
+  const season = document.getElementById('import-season').value.trim();
+  if (!conf) { alert('Please enter a conference name.'); return; }
+
+  const bench = computePercentilesFromList(pendingCSVData);
+
+  // Inject into live CONF_DATA
+  if (!CONF_DATA[gender]) CONF_DATA[gender] = {};
+  if (!CONF_DATA[gender][event]) CONF_DATA[gender][event] = {};
+  CONF_DATA[gender][event][conf] = bench;
+
+  // Persist metadata
+  const datasets = getImportedDatasets();
+  const existing = datasets.findIndex(d =>
+    d.gender === gender && d.event === event && d.conf === conf && d.season === season);
+  const entry = { gender, event, conf, season, ...bench,
+    importedAt: new Date().toLocaleString(), rows: pendingCSVData.length };
+  if (existing >= 0) datasets[existing] = entry; else datasets.push(entry);
+  saveImportedDatasets(datasets);
+
+  // Also persist actual benchmark data for page reloads
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  if (!stored[gender]) stored[gender] = {};
+  if (!stored[gender][event]) stored[gender][event] = {};
+  stored[gender][event][conf] = bench;
+  localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
+
+  const res = document.getElementById('import-result');
+  res.className = 'import-result success';
+  res.textContent = `✓ Imported ${pendingCSVData.length} swimmers for ${conf} ${gender} ${event} (${season}). Benchmarks live.`;
+  pendingCSVData = null;
+  document.getElementById('commit-btn').disabled = true;
+  renderDatasets();
+}
+
+function renderDatasets() {
+  const datasets = getImportedDatasets();
+  const el = document.getElementById('dataset-list');
+  if (!datasets.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--slate);padding:0.5rem 0">No imported datasets yet. Upload a CSV above.</div>';
+    return;
+  }
+  el.innerHTML = datasets.map(d => `
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:10px 0;border-bottom:1px solid rgba(240,244,255,0.06)">
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600">
+          ${d.conf} ${d.gender} — ${d.event}
+          <span class="tag tag-cyan" style="margin-left:6px;font-size:10px">${d.season}</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-top:2px">
+          n=${d.size} · p50=${d.p50}s · imported ${d.importedAt}
+        </div>
+      </div>
+      <button onclick="deleteDataset('${d.gender}','${d.event}','${d.conf}','${d.season}')"
+        style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);
+        color:var(--red);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer">
+        Remove
+      </button>
+    </div>`).join('');
+}
+
+function deleteDataset(gender, event, conf, season) {
+  let datasets = getImportedDatasets().filter(d =>
+    !(d.gender === gender && d.event === event && d.conf === conf && d.season === season));
+  saveImportedDatasets(datasets);
+  // Remove from live CONF_DATA
+  if (CONF_DATA[gender]?.[event]?.[conf]) delete CONF_DATA[gender][event][conf];
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  if (stored[gender]?.[event]?.[conf]) delete stored[gender][event][conf];
+  localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
+  renderDatasets();
+}
+
+function renderUserTable() {
+  const users = getUsers();
+  const tbody = document.getElementById('user-table-body');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--slate);font-size:13px">No registered users yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const m = ROLE_META[u.role] || { tag:'tag-slate', label: u.role };
+    const statusColor = u.status === 'active' ? 'var(--green)' : 'var(--amber)';
+    return `<tr>
+      <td style="font-weight:500">${u.name}</td>
+      <td style="color:var(--slate)">${u.email}</td>
+      <td><span class="nav-user-role ${m.tag}">${m.label}</span></td>
+      <td style="color:var(--slate)">${u.team || '—'}</td>
+      <td style="color:${statusColor};font-size:12px;font-weight:600;text-transform:uppercase">${u.status}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        ${u.status === 'pending'
+          ? `<button onclick="approveUser(${u.id})" style="background:rgba(34,214,122,0.1);border:1px solid rgba(34,214,122,0.2);color:var(--green);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Approve</button>`
+          : ''}
+        ${u.role !== 'admin'
+          ? `<button onclick="promoteUser(${u.id})" style="background:rgba(0,201,255,0.1);border:1px solid rgba(0,201,255,0.2);color:var(--cyan);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">→ Admin</button>`
+          : ''}
+        <button onclick="removeUser(${u.id})" style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);color:var(--red);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Remove</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function approveUser(id) {
+  const users = getUsers().map(u => u.id === id ? { ...u, status: 'active' } : u);
+  saveUsers(users); renderUserTable();
+}
+function promoteUser(id) {
+  if (!confirm('Promote this user to Admin?')) return;
+  const users = getUsers().map(u => u.id === id ? { ...u, role: 'admin' } : u);
+  saveUsers(users); renderUserTable();
+}
+function removeUser(id) {
+  if (!confirm('Remove this user?')) return;
+  saveUsers(getUsers().filter(u => u.id !== id));
+  renderUserTable();
+}
+
+// ── Drag-and-drop on drop zone ─────────────────────────────────
+(function() {
+  const dz = document.getElementById('drop-zone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleCSVFile(file);
+  });
+})();
+
+// ── Restore persisted overrides on page load ───────────────────
+(function() {
+  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
+  for (const g of Object.keys(stored)) {
+    if (!CONF_DATA[g]) CONF_DATA[g] = {};
+    for (const ev of Object.keys(stored[g])) {
+      if (!CONF_DATA[g][ev]) CONF_DATA[g][ev] = {};
+      Object.assign(CONF_DATA[g][ev], stored[g][ev]);
+    }
+  }
+  // Restore session if still stored
+  if (SIR_AUTH) {
+    updateNavAuth();
+    if (SIR_AUTH.role === 'admin') showAdminPanel();
+  }
+})();
+
+// Close modal on overlay click
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
+</script>
+</body>
+</html>

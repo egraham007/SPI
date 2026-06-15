@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sir-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@sir.app
+      - key: ADMIN_PASSWORD
+        value: changeme123          # change this before deploying
+      - key: ADMIN_INVITE_CODE
+        value: SIR-ADMIN-2025       # change this before deploying
+      - key: ALLOWED_ORIGINS
+        value: "*"                  # restrict to your domain in production
+      - key: DB_PATH
+        value: /opt/render/project/src/sir.db
