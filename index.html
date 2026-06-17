@@ -2175,48 +2175,40 @@ function clearAuthError() {
   el.textContent = ''; el.classList.remove('show');
 }
 
-// Simple localStorage-based user store
+// ── User store — now backed by real API via api.js ─────────────
+// localStorage only used for token (handled inside api.js)
+// These stubs kept so renderUserTable still works offline gracefully
 function getUsers() { return JSON.parse(localStorage.getItem('sir_users') || '[]'); }
 function saveUsers(u) { localStorage.setItem('sir_users', JSON.stringify(u)); }
 
-function handleSignIn() {
+async function handleSignIn() {
   const email = document.getElementById('auth-email').value.trim().toLowerCase();
   const pass  = document.getElementById('auth-password').value;
   if (!email || !pass) { showAuthError('Please fill in all fields.'); return; }
-  const users = getUsers();
-  const user  = users.find(u => u.email === email && u.password === pass);
-  if (!user) { showAuthError('Incorrect email or password.'); return; }
-  if (user.status === 'pending') { showAuthError('Your account is pending admin approval.'); return; }
-  signInAs(user);
+  try {
+    const user = await SIR_API.login(email, pass);
+    signInAs(user);
+  } catch (err) {
+    showAuthError(err.message || 'Incorrect email or password.');
+  }
 }
 
-function handleSignUp() {
+async function handleSignUp() {
   const name  = document.getElementById('auth-name').value.trim();
   const email = document.getElementById('auth-email-up').value.trim().toLowerCase();
   const pass  = document.getElementById('auth-password-up').value;
   const team  = document.getElementById('auth-team').value.trim();
+  const code  = document.getElementById('auth-invite-code') 
+                  ? document.getElementById('auth-invite-code').value.trim() 
+                  : '';
   if (!name || !email || !pass) { showAuthError('Please fill in all fields.'); return; }
   if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
-  const users = getUsers();
-  if (users.find(u => u.email === email)) { showAuthError('Email already registered.'); return; }
-  const newUser = {
-    id: Date.now(),
-    name, email, password: pass, team,
-    role: selectedRole,
-    status: selectedRole === 'admin' ? 'pending' : 'active',
-    createdAt: new Date().toISOString(),
-  };
-  // First admin is auto-approved for demo purposes
-  if (selectedRole === 'admin' && users.filter(u => u.role === 'admin').length === 0) {
-    newUser.status = 'active';
+  try {
+    const user = await SIR_API.signup(name, email, pass, selectedRole, code);
+    signInAs(user);
+  } catch (err) {
+    showAuthError(err.message || 'Could not create account.');
   }
-  users.push(newUser);
-  saveUsers(users);
-  if (newUser.status === 'pending') {
-    showAuthError('Account created! An admin will review and activate it.');
-    return;
-  }
-  signInAs(newUser);
 }
 
 function signInAs(user) {
@@ -2227,7 +2219,8 @@ function signInAs(user) {
   if (user.role === 'admin') showAdminPanel();
 }
 
-function signOut() {
+async function signOut() {
+  await SIR_API.logout();
   SIR_AUTH = null;
   localStorage.removeItem('sir_auth');
   updateNavAuth();
@@ -2328,7 +2321,7 @@ function getImportedDatasets() {
 }
 function saveImportedDatasets(d) { localStorage.setItem('sir_imported_datasets', JSON.stringify(d)); }
 
-function commitCSVImport() {
+async function commitCSVImport() {
   if (!pendingCSVData || !pendingCSVData.length) return;
   const event  = document.getElementById('import-event').value;
   const gender = document.getElementById('import-gender').value;
@@ -2336,32 +2329,43 @@ function commitCSVImport() {
   const season = document.getElementById('import-season').value.trim();
   if (!conf) { alert('Please enter a conference name.'); return; }
 
-  const bench = computePercentilesFromList(pendingCSVData);
-
-  // Inject into live CONF_DATA
-  if (!CONF_DATA[gender]) CONF_DATA[gender] = {};
-  if (!CONF_DATA[gender][event]) CONF_DATA[gender][event] = {};
-  CONF_DATA[gender][event][conf] = bench;
-
-  // Persist metadata
-  const datasets = getImportedDatasets();
-  const existing = datasets.findIndex(d =>
-    d.gender === gender && d.event === event && d.conf === conf && d.season === season);
-  const entry = { gender, event, conf, season, ...bench,
-    importedAt: new Date().toLocaleString(), rows: pendingCSVData.length };
-  if (existing >= 0) datasets[existing] = entry; else datasets.push(entry);
-  saveImportedDatasets(datasets);
-
-  // Also persist actual benchmark data for page reloads
-  const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
-  if (!stored[gender]) stored[gender] = {};
-  if (!stored[gender][event]) stored[gender][event] = {};
-  stored[gender][event][conf] = bench;
-  localStorage.setItem('sir_conf_data_overrides', JSON.stringify(stored));
-
   const res = document.getElementById('import-result');
-  res.className = 'import-result success';
-  res.textContent = `✓ Imported ${pendingCSVData.length} swimmers for ${conf} ${gender} ${event} (${season}). Benchmarks live.`;
+
+  // Rebuild original file from parsed rows so we can POST it
+  const csvText = 'rank,name,school,meet,time\n' +
+    pendingCSVData.map(r => `${r.rank},${r.name},,,${ r.time}`).join('\n');
+  const file = new File([csvText], 'import.csv', { type: 'text/csv' });
+
+  try {
+    const result = await SIR_API.importCSV(file, conf, event, gender, season);
+
+    // Also inject into live REAL_LISTS so scoring works immediately
+    const listKey = `${conf}|${event}|${gender}`;
+    REAL_LISTS[listKey] = pendingCSVData.map(r => ({
+      rank: r.rank, name: r.name, meet: r.meet || '', time: r.time
+    }));
+
+    // Keep local dataset list in sync for the UI
+    const bench = computePercentilesFromList(pendingCSVData);
+    if (!CONF_DATA[gender]) CONF_DATA[gender] = {};
+    if (!CONF_DATA[gender][event]) CONF_DATA[gender][event] = {};
+    CONF_DATA[gender][event][conf] = bench;
+    const datasets = getImportedDatasets();
+    const existing = datasets.findIndex(d =>
+      d.gender === gender && d.event === event && d.conf === conf && d.season === season);
+    const entry = { gender, event, conf, season, ...bench,
+      importedAt: new Date().toLocaleString(), rows: pendingCSVData.length };
+    if (existing >= 0) datasets[existing] = entry; else datasets.push(entry);
+    saveImportedDatasets(datasets);
+
+    res.className = 'import-result success';
+    res.textContent = `✓ Saved ${result.imported} swims to server — ${conf} ${gender} ${event} (${season}). Best: ${result.best}`;
+  } catch (err) {
+    res.className = 'import-result error';
+    res.textContent = `✗ Import failed: ${err.message}`;
+  }
+
+  res.style.display = 'block';
   pendingCSVData = null;
   document.getElementById('commit-btn').disabled = true;
   renderDatasets();
@@ -2406,47 +2410,53 @@ function deleteDataset(gender, event, conf, season) {
   renderDatasets();
 }
 
-function renderUserTable() {
-  const users = getUsers();
+async function renderUserTable() {
   const tbody = document.getElementById('user-table-body');
-  if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--slate);font-size:13px">No registered users yet.</td></tr>';
-    return;
+  tbody.innerHTML = '<tr><td colspan="6" style="color:var(--slate);font-size:13px">Loading...</td></tr>';
+  try {
+    const data  = await SIR_API.getUsers();
+    const users = data.users || [];
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--slate);font-size:13px">No registered users yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const m = ROLE_META[u.role] || { tag:'tag-slate', label: u.role };
+      const statusColor = u.status === 'active' ? 'var(--green)' : 'var(--amber)';
+      return `<tr>
+        <td style="font-weight:500">${u.name}</td>
+        <td style="color:var(--slate)">${u.email}</td>
+        <td><span class="nav-user-role ${m.tag}">${m.label}</span></td>
+        <td style="color:var(--slate)">—</td>
+        <td style="color:${statusColor};font-size:12px;font-weight:600;text-transform:uppercase">${u.status}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          ${u.status === 'pending'
+            ? `<button onclick="approveUser(${u.id})" style="background:rgba(34,214,122,0.1);border:1px solid rgba(34,214,122,0.2);color:var(--green);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Approve</button>`
+            : ''}
+          ${u.role !== 'admin'
+            ? `<button onclick="promoteUser(${u.id})" style="background:rgba(0,201,255,0.1);border:1px solid rgba(0,201,255,0.2);color:var(--cyan);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">→ Admin</button>`
+            : ''}
+          <button onclick="removeUser(${u.id})" style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);color:var(--red);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Remove</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:13px">Could not load users: ${err.message}</td></tr>`;
   }
-  tbody.innerHTML = users.map(u => {
-    const m = ROLE_META[u.role] || { tag:'tag-slate', label: u.role };
-    const statusColor = u.status === 'active' ? 'var(--green)' : 'var(--amber)';
-    return `<tr>
-      <td style="font-weight:500">${u.name}</td>
-      <td style="color:var(--slate)">${u.email}</td>
-      <td><span class="nav-user-role ${m.tag}">${m.label}</span></td>
-      <td style="color:var(--slate)">${u.team || '—'}</td>
-      <td style="color:${statusColor};font-size:12px;font-weight:600;text-transform:uppercase">${u.status}</td>
-      <td style="display:flex;gap:6px;flex-wrap:wrap">
-        ${u.status === 'pending'
-          ? `<button onclick="approveUser(${u.id})" style="background:rgba(34,214,122,0.1);border:1px solid rgba(34,214,122,0.2);color:var(--green);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Approve</button>`
-          : ''}
-        ${u.role !== 'admin'
-          ? `<button onclick="promoteUser(${u.id})" style="background:rgba(0,201,255,0.1);border:1px solid rgba(0,201,255,0.2);color:var(--cyan);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">→ Admin</button>`
-          : ''}
-        <button onclick="removeUser(${u.id})" style="background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.2);color:var(--red);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer">Remove</button>
-      </td>
-    </tr>`;
-  }).join('');
 }
 
-function approveUser(id) {
-  const users = getUsers().map(u => u.id === id ? { ...u, status: 'active' } : u);
-  saveUsers(users); renderUserTable();
+async function approveUser(id) {
+  await SIR_API.updateUser(id, { status: 'active' });
+  renderUserTable();
 }
-function promoteUser(id) {
+async function promoteUser(id) {
   if (!confirm('Promote this user to Admin?')) return;
-  const users = getUsers().map(u => u.id === id ? { ...u, role: 'admin' } : u);
-  saveUsers(users); renderUserTable();
+  await SIR_API.updateUser(id, { role: 'admin' });
+  renderUserTable();
 }
-function removeUser(id) {
+async function removeUser(id) {
   if (!confirm('Remove this user?')) return;
-  saveUsers(getUsers().filter(u => u.id !== id));
+  await SIR_API.updateUser(id, { status: 'suspended' });
   renderUserTable();
 }
 
@@ -2463,7 +2473,7 @@ function removeUser(id) {
   });
 })();
 
-// ── Restore persisted overrides on page load ───────────────────
+// ── Restore session and load real data on page load ────────────
 (function() {
   const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
   for (const g of Object.keys(stored)) {
@@ -2473,8 +2483,36 @@ function removeUser(id) {
       Object.assign(CONF_DATA[g][ev], stored[g][ev]);
     }
   }
-  // Restore session if still stored
-  if (SIR_AUTH) {
+
+  // Verify session token against real API, then load ranked lists
+  if (SIR_API.isLoggedIn()) {
+    SIR_API.me().then(user => {
+      if (user) {
+        SIR_AUTH = user;
+        localStorage.setItem('sir_auth', JSON.stringify(user));
+        updateNavAuth();
+        if (user.role === 'admin') showAdminPanel();
+      } else {
+        // Token expired — clear it
+        SIR_AUTH = null;
+        localStorage.removeItem('sir_auth');
+        updateNavAuth();
+      }
+    });
+
+    // Load all real ranked lists from server into REAL_LISTS
+    SIR_API.getLists().then(data => {
+      (data.lists || []).forEach(meta => {
+        SIR_API.getListSwims(meta.list_key).then(d => {
+          if (d.swims && d.swims.length) {
+            REAL_LISTS[meta.list_key] = d.swims.map(s => ({
+              rank: s.rank, name: s.name, meet: s.meet || '', time: s.time
+            }));
+          }
+        }).catch(() => {});
+      });
+    }).catch(() => {});
+  } else if (SIR_AUTH) {
     updateNavAuth();
     if (SIR_AUTH.role === 'admin') showAdminPanel();
   }
