@@ -2474,7 +2474,7 @@ async function removeUser(id) {
 })();
 
 // ── Restore session and load real data on page load ────────────
-(function() {
+window.addEventListener('load', function() {
   const stored = JSON.parse(localStorage.getItem('sir_conf_data_overrides') || '{}');
   for (const g of Object.keys(stored)) {
     if (!CONF_DATA[g]) CONF_DATA[g] = {};
@@ -2516,7 +2516,7 @@ async function removeUser(id) {
     updateNavAuth();
     if (SIR_AUTH.role === 'admin') showAdminPanel();
   }
-})();
+});
 
 // Close modal on overlay click
 document.getElementById('auth-modal').addEventListener('click', function(e) {
