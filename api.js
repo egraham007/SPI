@@ -84,6 +84,11 @@ const SIR_API = (() => {
     return req('GET', `/api/lists/${encodeURIComponent(listKey)}/swims`);
   }
 
+  // ── Benchmarks ───────────────────────────────────────────────
+  async function getBenchmarks() {
+    return req('GET', '/api/benchmarks');
+  }
+
   // ── Admin: import CSV ─────────────────────────────────────────
   async function importCSV(file, conference, event, gender, season) {
     const form = new FormData();
@@ -116,7 +121,7 @@ const SIR_API = (() => {
   // ── Public API ─────────────────────────────────────────────────
   return {
     signup, login, logout, me,
-    score, getLists, getListSwims,
+    score, getLists, getListSwims, getBenchmarks,
     importCSV, importLog,
     getUsers, updateUser,
     health,

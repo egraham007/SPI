@@ -404,6 +404,50 @@ def get_list_swims(list_key):
     return jsonify({'list': dict(meta), 'swims': [dict(s) for s in swims]})
 
 
+# ── Benchmarks (public) ────────────────────────────────────────────────────────
+def percentile(sorted_times: list[float], pct: float) -> float:
+    """Linear interpolation percentile on sorted ascending data."""
+    n = len(sorted_times)
+    if n == 0:
+        return 0.0
+    if n == 1:
+        return sorted_times[0]
+    idx = (pct / 100) * (n - 1)
+    lo, hi = int(idx), min(int(idx) + 1, n - 1)
+    return round(sorted_times[lo] + (idx - lo) * (sorted_times[hi] - sorted_times[lo]), 3)
+
+
+@app.get('/api/benchmarks')
+def benchmarks():
+    """
+    Percentile distributions (p10/p25/p50/p75/p90/size) for every imported
+    ranked list, shaped as { gender: { event: { conference: {...} } } } —
+    matches the CONF_DATA structure the frontend consumes directly.
+    """
+    db    = get_db()
+    lists = db.execute("SELECT list_key, conference, event, gender FROM ranked_lists").fetchall()
+
+    result: dict = {}
+    for meta in lists:
+        times_rows = db.execute(
+            "SELECT time FROM ranked_swims WHERE list_key=%s ORDER BY time",
+            (meta['list_key'],)
+        ).fetchall()
+        times = [r['time'] for r in times_rows]
+        if not times:
+            continue
+        g, ev, conf = meta['gender'], meta['event'], meta['conference']
+        result.setdefault(g, {}).setdefault(ev, {})[conf] = {
+            'p10':  percentile(times, 10),
+            'p25':  percentile(times, 25),
+            'p50':  percentile(times, 50),
+            'p75':  percentile(times, 75),
+            'p90':  percentile(times, 90),
+            'size': len(times),
+        }
+    return jsonify(result)
+
+
 # ── Scoring (public) ──────────────────────────────────────────────────────────
 @app.get('/api/score')
 def score():
