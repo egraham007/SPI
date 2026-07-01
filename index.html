@@ -1687,6 +1687,9 @@ function recordFreeSearch() {
 }
 
 // ─── Data ─────────────────────────────────────────────────────
+// Real ranked-swim lists loaded from the backend (list_key -> swims[]),
+// populated on page load and updated after each CSV import.
+let REAL_LISTS = {};
 const CONF_DATA = {
   M: {
     "50free": {
@@ -2290,15 +2293,12 @@ function parseCSV(text) {
     const rankRaw = clean[0];
     const rank = parseInt(rankRaw);
     if (isNaN(rank)) continue;
-    // col layout: rank, name, school(may be empty), meet, time
-    let name, time;
-    if (clean.length >= 5) {
-      name = clean[1];
-      time = parseFloat(clean[4]);
-    } else if (clean.length === 4) {
-      name = clean[1];
-      time = parseFloat(clean[3]);
-    } else continue;
+    // col layout: rank, name, ...(any extra columns)..., time
+    // Time is always the last column so extra descriptive columns
+    // (team, conference, event, etc.) don't shift its position.
+    if (clean.length < 3) continue;
+    const name = clean[1];
+    const time = parseFloat(clean[clean.length - 1]);
     if (isNaN(time)) continue;
     rows.push({ rank, name, time });
   }
