@@ -29,11 +29,11 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
-from pathlib import Path
 
+import psycopg2
+import psycopg2.extras
 from flask import Flask, jsonify, request, g
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -41,7 +41,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-DB_PATH = Path(os.environ.get('DB_PATH', 'sir.db'))
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/sir')
 
 # ── CORS (manual, no extra package needed) ─────────────────────────────────────
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*')
@@ -65,12 +65,32 @@ def options_handler(path):
 
 
 # ── Database ───────────────────────────────────────────────────────────────────
+class DB:
+    """Wraps a psycopg2 connection so call sites can keep doing
+    db.execute(sql, params).fetchone() / .fetchall() like sqlite3 allowed."""
+    def __init__(self, conn):
+        self.conn = conn
+
+    def execute(self, sql, params=()):
+        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params)
+        return cur
+
+    def executemany(self, sql, seq):
+        cur = self.conn.cursor()
+        cur.executemany(sql, seq)
+        return cur
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys=ON")
-        g.db.execute("PRAGMA journal_mode=WAL")
+        g.db = DB(psycopg2.connect(DATABASE_URL))
     return g.db
 
 @app.teardown_appcontext
@@ -79,13 +99,11 @@ def close_db(e=None):
     if db: db.close()
 
 def init_db():
-    db = sqlite3.connect(DB_PATH)
-    db.execute("PRAGMA foreign_keys=ON")
-    cur = db.cursor()
+    db = DB(psycopg2.connect(DATABASE_URL))
 
-    cur.executescript("""
+    db.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        id          SERIAL PRIMARY KEY,
         name        TEXT    NOT NULL,
         email       TEXT    NOT NULL UNIQUE,
         password    TEXT    NOT NULL,
@@ -93,18 +111,18 @@ def init_db():
                     CHECK(role IN ('swimmer','coach','admin')),
         status      TEXT    NOT NULL DEFAULT 'active'
                     CHECK(status IN ('active','suspended','pending')),
-        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at  TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
         token       TEXT PRIMARY KEY,
         user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        expires_at  TIMESTAMP NOT NULL,
-        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        expires_at  TIMESTAMPTZ NOT NULL,
+        created_at  TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS ranked_lists (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        id          SERIAL PRIMARY KEY,
         list_key    TEXT    NOT NULL UNIQUE,   -- "SEC|100free|M"
         conference  TEXT    NOT NULL,
         event       TEXT    NOT NULL,
@@ -112,18 +130,17 @@ def init_db():
         season      TEXT    NOT NULL,
         swim_count  INTEGER NOT NULL DEFAULT 0,
         imported_by INTEGER REFERENCES users(id),
-        imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        imported_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS ranked_swims (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        list_key    TEXT    NOT NULL,
+        id          SERIAL PRIMARY KEY,
+        list_key    TEXT    NOT NULL REFERENCES ranked_lists(list_key) ON DELETE CASCADE,
         rank        INTEGER NOT NULL,
         name        TEXT    NOT NULL,
         school      TEXT,
         meet        TEXT,
-        time        REAL    NOT NULL,
-        FOREIGN KEY(list_key) REFERENCES ranked_lists(list_key) ON DELETE CASCADE
+        time        REAL    NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_swims_list   ON ranked_swims(list_key);
@@ -137,7 +154,7 @@ def init_db():
     if not existing:
         pw = os.environ.get('ADMIN_PASSWORD', 'admin123')
         db.execute(
-            "INSERT OR IGNORE INTO users(name,email,password,role) VALUES(?,?,?,?)",
+            "INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) ON CONFLICT (email) DO NOTHING",
             ('Admin', os.environ.get('ADMIN_EMAIL', 'admin@sir.app'),
              generate_password_hash(pw), 'admin')
         )
@@ -154,8 +171,8 @@ def create_session(user_id: int) -> str:
     token  = secrets.token_urlsafe(32)
     expiry = datetime.utcnow() + timedelta(days=SESSION_DAYS)
     get_db().execute(
-        "INSERT INTO sessions(token,user_id,expires_at) VALUES(?,?,?)",
-        (token, user_id, expiry.isoformat())
+        "INSERT INTO sessions(token,user_id,expires_at) VALUES(%s,%s,%s)",
+        (token, user_id, expiry)
     )
     get_db().commit()
     return token
@@ -168,7 +185,7 @@ def get_current_user():
     row = get_db().execute("""
         SELECT u.* FROM users u
         JOIN sessions s ON s.user_id = u.id
-        WHERE s.token=? AND s.expires_at > datetime('now')
+        WHERE s.token=%s AND s.expires_at > NOW()
     """, (token,)).fetchone()
     return dict(row) if row else None
 
@@ -307,17 +324,18 @@ def signup():
             return jsonify({'error': 'Invalid admin invite code'}), 403
 
     db = get_db()
-    if db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
+    if db.execute("SELECT id FROM users WHERE email=%s", (email,)).fetchone():
         return jsonify({'error': 'Email already registered'}), 409
 
     cur = db.execute(
-        "INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",
+        "INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) RETURNING id",
         (name, email, generate_password_hash(password), role)
     )
+    new_id = cur.fetchone()['id']
     db.commit()
-    token = create_session(cur.lastrowid)
-    user  = dict(db.execute("SELECT id,name,email,role,status,created_at FROM users WHERE id=?",
-                             (cur.lastrowid,)).fetchone())
+    token = create_session(new_id)
+    user  = dict(db.execute("SELECT id,name,email,role,status,created_at FROM users WHERE id=%s",
+                             (new_id,)).fetchone())
     return jsonify({'token': token, 'user': user}), 201
 
 
@@ -328,7 +346,7 @@ def login():
     pw    = data.get('password') or ''
 
     db   = get_db()
-    row  = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+    row  = db.execute("SELECT * FROM users WHERE email=%s", (email,)).fetchone()
     if not row or not check_password_hash(row['password'], pw):
         return jsonify({'error': 'Invalid email or password'}), 401
     if row['status'] == 'suspended':
@@ -352,7 +370,7 @@ def logout():
     auth  = request.headers.get('Authorization', '')
     token = auth[7:] if auth.startswith('Bearer ') else ''
     if token:
-        get_db().execute("DELETE FROM sessions WHERE token=?", (token,))
+        get_db().execute("DELETE FROM sessions WHERE token=%s", (token,))
         get_db().commit()
     return jsonify({'ok': True})
 
@@ -375,12 +393,12 @@ def get_lists():
 def get_list_swims(list_key):
     """Return all swims for a ranked list."""
     db   = get_db()
-    meta = db.execute("SELECT * FROM ranked_lists WHERE list_key=?",
+    meta = db.execute("SELECT * FROM ranked_lists WHERE list_key=%s",
                       (list_key,)).fetchone()
     if not meta:
         return jsonify({'error': 'List not found'}), 404
     swims = db.execute(
-        "SELECT rank,name,school,meet,time FROM ranked_swims WHERE list_key=? ORDER BY time",
+        "SELECT rank,name,school,meet,time FROM ranked_swims WHERE list_key=%s ORDER BY time",
         (list_key,)
     ).fetchall()
     return jsonify({'list': dict(meta), 'swims': [dict(s) for s in swims]})
@@ -409,7 +427,7 @@ def score():
     list_key = f"{conf}|{event}|{gender}"
     db       = get_db()
     swims_rows = db.execute(
-        "SELECT rank,name,school,meet,time FROM ranked_swims WHERE list_key=? ORDER BY time",
+        "SELECT rank,name,school,meet,time FROM ranked_swims WHERE list_key=%s ORDER BY time",
         (list_key,)
     ).fetchall()
 
@@ -461,17 +479,17 @@ def import_list():
     db       = get_db()
 
     # Delete existing list if present (full replace)
-    db.execute("DELETE FROM ranked_swims WHERE list_key=?", (list_key,))
-    db.execute("DELETE FROM ranked_lists WHERE list_key=?", (list_key,))
+    db.execute("DELETE FROM ranked_swims WHERE list_key=%s", (list_key,))
+    db.execute("DELETE FROM ranked_lists WHERE list_key=%s", (list_key,))
 
     db.execute("""
         INSERT INTO ranked_lists(list_key,conference,event,gender,season,swim_count,imported_by)
-        VALUES(?,?,?,?,?,?,?)
+        VALUES(%s,%s,%s,%s,%s,%s,%s)
     """, (list_key, conf, event, gender, season, len(rows), g.current_user['id']))
 
     db.executemany("""
         INSERT INTO ranked_swims(list_key,rank,name,school,meet,time)
-        VALUES(?,?,?,?,?,?)
+        VALUES(%s,%s,%s,%s,%s,%s)
     """, [(list_key, r['rank'], r['name'], r.get('school',''), r.get('meet',''), r['time'])
           for r in rows])
 
@@ -552,11 +570,11 @@ def update_user(user_id):
         return jsonify({'error': 'Nothing to update'}), 400
 
     db  = get_db()
-    set_clause = ', '.join(f"{k}=?" for k in fields)
-    db.execute(f"UPDATE users SET {set_clause} WHERE id=?",
+    set_clause = ', '.join(f"{k}=%s" for k in fields)
+    db.execute(f"UPDATE users SET {set_clause} WHERE id=%s",
                (*fields.values(), user_id))
     db.commit()
-    user = db.execute("SELECT id,name,email,role,status FROM users WHERE id=?",
+    user = db.execute("SELECT id,name,email,role,status FROM users WHERE id=%s",
                       (user_id,)).fetchone()
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -566,7 +584,7 @@ def update_user(user_id):
 # ── Health check ───────────────────────────────────────────────────────────────
 @app.get('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'db': str(DB_PATH)})
+    return jsonify({'status': 'ok', 'db': 'postgres'})
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────

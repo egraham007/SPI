@@ -1,3 +1,7 @@
+databases:
+  - name: sir-db
+    plan: free
+
 services:
   - type: web
     name: sir-api
@@ -15,5 +19,7 @@ services:
         value: SIR-ADMIN-2025       # change this before deploying
       - key: ALLOWED_ORIGINS
         value: "*"                  # restrict to your domain in production
-      - key: DB_PATH
-        value: /opt/render/project/src/sir.db
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sir-db
+          property: connectionString

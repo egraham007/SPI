@@ -6,10 +6,12 @@ sir-backend/
 ├── app.py            ← Flask API (the whole backend)
 ├── api.js            ← Frontend JS client (put next to index.html)
 ├── requirements.txt  ← Python dependencies
-├── render.yaml       ← One-click Render deploy config
-├── .env.example      ← Copy to .env for local dev
-└── sir.db            ← SQLite database (auto-created on first run)
+├── render.yaml       ← One-click Render deploy config (web service + Postgres)
+└── .env.example      ← Copy to .env for local dev
 ```
+
+Data lives in Postgres (`DATABASE_URL`), not in a local file — this is what
+survives Render deploys (see "Notes on Postgres + Render" below).
 
 ---
 
@@ -20,13 +22,20 @@ sir-backend/
 pip install -r requirements.txt
 ```
 
-### 2. Configure environment
+### 2. Create a local Postgres database
 ```bash
-cp .env.example .env
-# Edit .env — change passwords and invite code
+createdb sir
+# or via Docker:
+# docker run --name sir-pg -e POSTGRES_HOST_AUTH_METHOD=trust -p 5432:5432 -d postgres
 ```
 
-### 3. Run the server
+### 3. Configure environment
+```bash
+cp .env.example .env
+# Edit .env — change passwords, invite code, and DATABASE_URL if needed
+```
+
+### 4. Run the server
 ```bash
 python app.py
 # Server starts at http://localhost:5000
@@ -54,9 +63,11 @@ git push -u origin main
 ```
 
 ### 2. Create Render Web Service
-1. Go to https://render.com → New → Web Service
+1. Go to https://render.com → New → Blueprint
 2. Connect your GitHub repo
 3. Render auto-detects `render.yaml` — click **Apply**
+   (this provisions both the web service and a free Postgres database,
+   and wires `DATABASE_URL` between them automatically)
 
 ### 3. Set environment variables in Render dashboard
 | Variable | Value |
@@ -66,6 +77,7 @@ git push -u origin main
 | `ADMIN_PASSWORD` | strong password |
 | `ADMIN_INVITE_CODE` | your secret code |
 | `ALLOWED_ORIGINS` | https://your-site.com |
+| `DATABASE_URL` | (auto-filled from the linked database) |
 
 ### 4. Update frontend API base URL
 In `index.html`:
@@ -131,12 +143,13 @@ rank, name, school, meet, time
 
 ---
 
-## Notes on SQLite + Render
-Render's free tier uses an ephemeral filesystem — the database resets on each deploy.
-To persist data across deploys, either:
-- Upgrade to Render's paid disk ($7/mo), or
-- Migrate to PostgreSQL (Render offers a free 90-day PG instance), or
-- Export your ranked lists as a JSON seed file and re-import on startup
+## Notes on Postgres + Render
+The backend now stores everything in Postgres via `DATABASE_URL`, so data
+survives redeploys — the old SQLite setup lost its database file on every
+deploy because Render's web service filesystem is ephemeral.
 
-The simplest production path: add a `seed_data.json` file with your ranked lists
-and call `seed_from_file()` in `init_db()`. Data always survives deploys that way.
+Render's free Postgres tier is time-limited (historically expires after
+30–90 days, subject to change) and gets deleted after that — check the
+current policy in the Render dashboard before you rely on it long-term.
+When it's about to expire, either upgrade to a paid Postgres plan or spin up
+a new free instance and re-import your ranked lists (`/api/import`) into it.
